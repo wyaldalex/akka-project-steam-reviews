@@ -32,6 +32,7 @@ ThisBuild / libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.4.0",
   "org.scalatest" %% "scalatest" % "3.2.13",
   "com.github.jwt-scala" %% "jwt-spray-json" % "9.0.2",
+  "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.8.0",
 )
 
 lazy val root = (project in file("."))
