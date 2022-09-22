@@ -1,1 +1,36 @@
-<mxfile host="app.diagrams.net" modified="2022-09-22T17:55:36.747Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36" version="20.3.6" etag="tqUM5mzBaSB61loqjQ7m" type="github"><diagram id="MjV-GPt-zY0LUUBLKkai">UzV2zq1wL0osyPDNT0nNUTV2VTV2LsrPL4GwciucU3NyVI0MMlNUjV1UjYwMgFjVyA2HrCFY1qAgsSg1rwSLBiADYTaQg2Y1AA==</diagram></mxfile>
+<mxfile host="app.diagrams.net" modified="2022-09-22T18:39:11.075Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36" etag="Z8NyaK9mvshfOHueOVpF" version="20.3.6" type="github">
+  <diagram id="MjV-GPt-zY0LUUBLKkai" name="Página-1">
+    <mxGraphModel dx="1422" dy="793" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-16" value="Dataset" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=0;strokeWidth=2;resizeParent=0;resizeLast=1;shadow=0;dashed=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="240" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-17" value="- id: Long&#xa;- app_id: Long&#xa;- app_name: String&#xa;- review_id: Long&#xa;- language (region): String&#xa;- timestamp_created: Long&#xa;- timestamp_updated: Long&#xa;- recommended: Boolean&#xa;- votes_funny: Long&#xa;- weighted_vote_score: Double&#xa;- comment_count: Long&#xa;- steam_purchase: Boolean&#xa;- received_for_free: Boolean&#xa;- written_during_early_access: Boolean&#xa;- author.steamid: Long&#xa;- author.num_games_owned: Int&#xa;- author.num_reviews: Int&#xa;- author.playtime_forever: Double&#xa;- author.playtime_last_two_weeks: Double&#xa;- author.playtime_at_review: Double&#xa;- author.last_played: Long" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;" vertex="1" parent="Jnq2zSXsNjDgJ8CQdMQn-16">
+          <mxGeometry y="30" width="240" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-21" value="Game" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=0;strokeWidth=2;resizeParent=0;resizeLast=1;shadow=0;dashed=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="130" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-22" value="- steam_appid: Long&#xa;- steam_appname: String" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;" vertex="1" parent="Jnq2zSXsNjDgJ8CQdMQn-21">
+          <mxGeometry y="30" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-23" value="User" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=0;strokeWidth=2;resizeParent=0;resizeLast=1;shadow=0;dashed=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="30" width="160" height="90" as="geometry">
+            <mxRectangle x="560" y="30" width="80" height="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-24" value="- authorid: Long&#xa;- num_games_owned: Int&#xa;- num_reviews: Int" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;" vertex="1" parent="Jnq2zSXsNjDgJ8CQdMQn-23">
+          <mxGeometry y="30" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-26" value="Review" style="swimlane;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=1;fontSize=14;fontStyle=0;strokeWidth=2;resizeParent=0;resizeLast=1;shadow=0;dashed=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="310" y="30" width="240" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="Jnq2zSXsNjDgJ8CQdMQn-27" value="- id: Long&#xa;- steam_appid: Long&#xa;- authorid: Long&#xa;- review_id: Long&#xa;- language (region): String&#xa;- timestamp_created: Long&#xa;- timestamp_updated: Long&#xa;- recommended: Boolean&#xa;- votes_funny: Long&#xa;- weighted_vote_score: Double&#xa;- comment_count: Long&#xa;- steam_purchase: Boolean&#xa;- received_for_free: Boolean&#xa;- written_during_early_access: Boolean&#xa;- author_playtime_forever: Double&#xa;- author_playtime_last_two_weeks: Double&#xa;- author_playtime_at_review: Double&#xa;- author_last_played: Long" style="align=left;strokeColor=none;fillColor=none;spacingLeft=4;fontSize=12;verticalAlign=top;resizable=0;rotatable=0;part=1;" vertex="1" parent="Jnq2zSXsNjDgJ8CQdMQn-26">
+          <mxGeometry y="30" width="240" height="270" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
