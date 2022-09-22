@@ -2,9 +2,10 @@ ThisBuild / version := "0.1.0"
 
 ThisBuild / scalaVersion := "2.13.9"
 
-val akkaVersion = "2.6.20"
-val akkaHttpVersion = "10.2.10"
+val akkaVersion      = "2.6.20"
+val akkaHttpVersion  = "10.2.10"
 val cassandraVersion = "1.0.6"
+val logbackVersion   = "1.3.0"
 
 ThisBuild / libraryDependencies ++= Seq(
   // Akka actor
@@ -13,8 +14,12 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   // Akka http
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion,
+  // json serializing
+  "io.circe" %% "circe-core" % "0.14.2",
+  "io.circe" %% "circe-generic" % "0.14.2",
+  "io.circe" %% "circe-parser" % "0.14.2",
+  "de.heikoseeberger" %% "akka-http-circe" % "1.39.2",
   // akka dependencies and testkit
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
@@ -29,14 +34,13 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence-cassandra" % cassandraVersion,
   "com.typesafe.akka" %% "akka-persistence-cassandra-launcher" % cassandraVersion % Test,
   // dependencies
-  "ch.qos.logback" % "logback-classic" % "1.4.0",
+  "ch.qos.logback" % "logback-classic" % logbackVersion,
   "org.scalatest" %% "scalatest" % "3.2.13",
-  "com.github.jwt-scala" %% "jwt-spray-json" % "9.0.2",
-  "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.8.0",
+  "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.8.0"
 )
 
 lazy val root = (project in file("."))
   .settings(
-    name := "scala-steam",
-    idePackagePrefix := Some("net.josuegalre.steam")
+    name := "scala-akka-project",
+    idePackagePrefix := Some("dev.galre.josue.akkaProject")
   )
