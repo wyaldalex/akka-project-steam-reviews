@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/project.scala-steam-build.iml" filepath="$PROJECT_DIR$/.idea/modules/project.scala-steam-build.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-steam.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-steam.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-steam-build.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-steam-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-akka-project.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-akka-project.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-akka-project-build.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-akka-project-build.iml" />
     </modules>
   </component>
 </project>
