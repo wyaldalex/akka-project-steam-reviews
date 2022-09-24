@@ -8,16 +8,16 @@ import scala.util.{ Failure, Success, Try }
 
 object GameActor {
   // state
-  case class GameState(steamAppId: BigInt, steamAppName: String, isDeleted: Boolean)
+  case class GameState(steamAppId: BigInt, steamAppName: String)
 
   // commands
   case class CreateGame(steamAppName: String)
 
   case class UpdateName(newName: String)
 
-  case object DeleteGame
+  case class DeleteGame(id: BigInt)
 
-  case object GetGameInfo
+  case class GetGameInfo(id: BigInt)
 
   // events
   case class GameCreated(game: GameState)
@@ -46,20 +46,18 @@ class GameActor(steamAppId: BigInt) extends PersistentActor {
 
   override def persistenceId: String = s"steam-appid-$steamAppId"
 
-  var state: GameState = GameState(steamAppId, "", isDeleted = false)
-
-  def isGameNotDeleted: Boolean = !state.isDeleted
+  var state: GameState = GameState(steamAppId, "")
 
   override def receiveCommand: Receive = {
-    case CreateGame(name) if isGameNotDeleted =>
+    case CreateGame(name) =>
       val id = state.steamAppId
 
-      persist(GameCreated(GameState(id, name, isDeleted = false))) { _ =>
+      persist(GameCreated(GameState(id, name))) { _ =>
         state = state.copy(steamAppName = name)
         sender() ! GameCreatedResponse(id)
       }
 
-    case UpdateName(newName) if isGameNotDeleted =>
+    case UpdateName(newName) =>
       if (newName == state.steamAppName)
         sender() ! GameUpdatedResponse(
           Failure(new IllegalArgumentException("The new name cannot be equal to the previous one."))
@@ -70,16 +68,10 @@ class GameActor(steamAppId: BigInt) extends PersistentActor {
           sender() ! GameUpdatedResponse(Success(state))
         }
 
-    case DeleteGame if isGameNotDeleted =>
-      persist(GameDeleted) { _ =>
-        state = state.copy(isDeleted = true)
-        sender() ! GameDeletedResponse(Success(true))
-      }
-
-    case GetGameInfo if isGameNotDeleted =>
+    case GetGameInfo =>
       sender() ! GetGameInfoResponse(Some(state))
 
-    case CreateGame(_) | UpdateName(_) | DeleteGame | GetGameInfo =>
+    case CreateGame(_) | UpdateName(_) | GetGameInfo =>
       sender() ! new IllegalAccessException("The selected account does not exists.")
   }
 
@@ -89,8 +81,5 @@ class GameActor(steamAppId: BigInt) extends PersistentActor {
 
     case GameUpdated(newName) =>
       state = state.copy(steamAppName = newName)
-
-    case GameDeleted =>
-      state = state.copy(isDeleted = true)
   }
 }
