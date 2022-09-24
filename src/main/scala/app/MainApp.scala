@@ -1,9 +1,10 @@
 package dev.galre.josue.akkaProject
 package app
 
+import actors.GameManagerActor
 import http.MainRouter
 
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, Props }
 import akka.http.scaladsl.Http
 import akka.util.Timeout
 
@@ -14,8 +15,11 @@ import scala.util.{ Failure, Success }
 object MainApp {
   def startHttpServer()(implicit system: ActorSystem): Unit = {
     implicit val dispatcher: ExecutionContext = system.dispatcher
+    implicit val timeout   : Timeout          = Timeout(5.seconds)
 
-    val routes = MainRouter()
+    val gameManagerActor = system.actorOf(Props[GameManagerActor], "steam-game-manager")
+
+    val routes = MainRouter(gameManagerActor)
 
     val boundServer = Http().newServerAt("localhost", 8080).bind(routes)
 
@@ -32,8 +36,7 @@ object MainApp {
   }
 
   def main(args: Array[String]): Unit = {
-    implicit val system : ActorSystem = ActorSystem("AkkaProjectSystem")
-    implicit val timeout: Timeout     = Timeout(5.seconds)
+    implicit val system: ActorSystem = ActorSystem("AkkaProjectSystem")
 
     startHttpServer()
   }
