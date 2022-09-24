@@ -6,6 +6,7 @@ val akkaVersion      = "2.6.20"
 val akkaHttpVersion  = "10.2.10"
 val cassandraVersion = "1.0.6"
 val logbackVersion   = "1.3.0"
+val circeVersion     = "0.14.3"
 
 ThisBuild / libraryDependencies ++= Seq(
   // Akka actor
@@ -16,9 +17,9 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion,
   // json serializing
-  "io.circe" %% "circe-core" % "0.14.2",
-  "io.circe" %% "circe-generic" % "0.14.2",
-  "io.circe" %% "circe-parser" % "0.14.2",
+  "io.circe" %% "circe-core" % circeVersion,
+  "io.circe" %% "circe-generic" % circeVersion,
+  "io.circe" %% "circe-parser" % circeVersion,
   "de.heikoseeberger" %% "akka-http-circe" % "1.39.2",
   // akka dependencies and testkit
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
