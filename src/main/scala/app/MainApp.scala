@@ -4,7 +4,7 @@ package app
 import actors.GameManagerActor
 import http.MainRouter
 
-import akka.actor.{ ActorSystem, Props }
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.util.Timeout
 
@@ -17,7 +17,7 @@ object MainApp {
     implicit val dispatcher: ExecutionContext = system.dispatcher
     implicit val timeout   : Timeout          = Timeout(5.seconds)
 
-    val gameManagerActor = system.actorOf(Props[GameManagerActor], "steam-game-manager")
+    val gameManagerActor = system.actorOf(GameManagerActor.props, "steam-game-manager")
 
     val routes = MainRouter(gameManagerActor)
 

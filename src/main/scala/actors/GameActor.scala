@@ -1,7 +1,7 @@
 package dev.galre.josue.akkaProject
 package actors
 
-import akka.actor.Props
+import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 
 import scala.util.{ Failure, Success, Try }
@@ -13,7 +13,7 @@ object GameActor {
   // commands
   case class CreateGame(steamAppName: String)
 
-  case class UpdateName(newName: String)
+  case class UpdateName(id: BigInt, newName: String)
 
   case class DeleteGame(id: BigInt)
 
@@ -24,15 +24,13 @@ object GameActor {
 
   case class GameUpdated(newName: String)
 
-  case object GameDeleted
-
 
   //responses
-  case class GameCreatedResponse(steamAppId: BigInt)
+  case class GameCreatedResponse(steamAppId: Try[BigInt])
 
   case class GameUpdatedResponse(maybeGame: Try[GameState])
 
-  case class GetGameInfoResponse(maybeGame: Option[GameState])
+  case class GetGameInfoResponse(maybeGame: Try[GameState])
 
   case class GameDeletedResponse(gameWasDeletedSuccessfully: Try[Boolean])
 
@@ -40,7 +38,9 @@ object GameActor {
   def props(userId: BigInt): Props = Props(new GameActor(userId))
 }
 
-class GameActor(steamAppId: BigInt) extends PersistentActor {
+class GameActor(steamAppId: BigInt)
+  extends PersistentActor
+  with ActorLogging {
 
   import GameActor._
 
@@ -54,10 +54,10 @@ class GameActor(steamAppId: BigInt) extends PersistentActor {
 
       persist(GameCreated(GameState(id, name))) { _ =>
         state = state.copy(steamAppName = name)
-        sender() ! GameCreatedResponse(id)
+        sender() ! GameCreatedResponse(Success(id))
       }
 
-    case UpdateName(newName) =>
+    case UpdateName(_, newName) =>
       if (newName == state.steamAppName)
         sender() ! GameUpdatedResponse(
           Failure(new IllegalArgumentException("The new name cannot be equal to the previous one."))
@@ -65,14 +65,13 @@ class GameActor(steamAppId: BigInt) extends PersistentActor {
       else
         persist(GameUpdated(newName)) { _ =>
           state = state.copy(steamAppName = newName)
+
           sender() ! GameUpdatedResponse(Success(state))
         }
 
-    case GetGameInfo =>
-      sender() ! GetGameInfoResponse(Some(state))
+    case GetGameInfo(_) =>
+      sender() ! GetGameInfoResponse(Success(state))
 
-    case CreateGame(_) | UpdateName(_) | GetGameInfo =>
-      sender() ! new IllegalAccessException("The selected account does not exists.")
   }
 
   override def receiveRecover: Receive = {

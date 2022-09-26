@@ -1,10 +1,14 @@
 package dev.galre.josue.akkaProject
 package actors
 
+import akka.actor.{ ActorLogging, Props }
+import akka.pattern.{ ask, pipe }
 import akka.persistence.PersistentActor
+import akka.util.Timeout
 
 import scala.collection.mutable
-import scala.util.Success
+import scala.concurrent.ExecutionContext
+import scala.util.{ Failure, Success }
 
 object GameManagerActor {
 
@@ -12,16 +16,22 @@ object GameManagerActor {
   case class GameManager(
     var gameCount: BigInt = 0,
     games:         mutable.AnyRefMap[BigInt, ActorController]
-    // TODO: Figure out how to check if a game with the same title already exists
   )
 
+
   // events
-  case class GameActorCreated(id: BigInt)
+  case class GameActorCreated(id: BigInt, steamAppName: String)
+
+  case class GameActorUpdated(id: BigInt, steamAppName: String)
 
   case class GameActorDeleted(id: BigInt)
+
+  def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new GameManagerActor())
 }
 
-class GameManagerActor extends PersistentActor {
+class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionContext)
+  extends PersistentActor
+  with ActorLogging {
 
   import GameActor._
   import GameManagerActor._
@@ -30,29 +40,57 @@ class GameManagerActor extends PersistentActor {
 
   override def persistenceId: String = "steam-games-manager"
 
+  def createActorName(steamGameId: BigInt): String = s"steam-app-$steamGameId"
+
+  def gameAlreadyExists(steamAppName: String): Boolean =
+    gameManagerState.games.exists {
+      case (_, ActorController(_, name, _)) => name == steamAppName
+    }
+
+  def isGameAvailable(id: BigInt): Boolean =
+    gameManagerState.games.contains(id) && !gameManagerState.games(id).isDisabled
+
   override def receiveCommand: Receive = {
     case command @ CreateGame(steamAppName) =>
-      val steamGameId    = gameManagerState.gameCount
-      val gameActorName  = s"steam-app-$steamGameId"
-      val gameActor      = context.actorOf(
-        GameActor.props(steamGameId),
-        gameActorName
-      )
-      val controlledGame = ActorController(gameActor)
-
-      persist(GameActorCreated(steamGameId)) { _ =>
-        gameManagerState = gameManagerState.copy(
-          gameCount = gameManagerState.gameCount + 1,
-          games = gameManagerState.games.addOne(steamGameId -> controlledGame)
+      if (gameAlreadyExists(steamAppName))
+        sender() ! GameCreatedResponse(Failure(GameAlreadyExistsException("A game with this name already exists.")))
+      else {
+        val steamGameId    = gameManagerState.gameCount
+        val gameActorName  = createActorName(steamGameId)
+        val gameActor      = context.actorOf(
+          GameActor.props(steamGameId),
+          gameActorName
         )
+        val controlledGame = ActorController(gameActor, steamAppName)
 
-        gameActor.forward(command)
+        persist(GameActorCreated(steamGameId, steamAppName)) { _ =>
+          gameManagerState = gameManagerState.copy(
+            gameCount = gameManagerState.gameCount + 1,
+            games = gameManagerState.games.addOne(steamGameId -> controlledGame)
+          )
+
+          gameActor.forward(command)
+        }
       }
 
-    case GetGameInfo(id) =>
+    case getCommand @ GetGameInfo(id) if isGameAvailable(id) =>
+      gameManagerState.games(id).actor.forward(getCommand)
 
+    case getUpdateCommand @ UpdateName(id, newName) if isGameAvailable(id) =>
+      (gameManagerState.games(id).actor ? getUpdateCommand).mapTo[GameUpdatedResponse].pipeTo(sender()).andThen {
+        case Success(gameUpdatedResponse) => gameUpdatedResponse.maybeGame match {
+          case Success(_) =>
+            persist(GameActorUpdated(id, newName)) { _ =>
+              gameManagerState.games(id).name = newName
+            }
 
-    case DeleteGame(id) =>
+          case _ =>
+        }
+
+        case _ =>
+      }
+
+    case DeleteGame(id) if isGameAvailable(id) =>
       persist(GameActorDeleted(id)) { _ =>
         gameManagerState.games(id).isDisabled = true
         sender() ! GameDeletedResponse(Success(true))
@@ -61,24 +99,27 @@ class GameManagerActor extends PersistentActor {
   }
 
   override def receiveRecover: Receive = {
-    case GameActorCreated(id) =>
-      val gameActorName = s"steam-app-$id"
-      val gameActor     = context.child(id.toString)
+    case GameActorCreated(steamGameId, steamAppName) =>
+      val gameActorName = createActorName(steamGameId)
+      val gameActor     = context.child(gameActorName)
         .getOrElse(
           context.actorOf(
-            GameActor.props(id),
+            GameActor.props(steamGameId),
             gameActorName
           )
         )
 
-      val controlledGame = ActorController(gameActor)
+      val controlledGame = ActorController(gameActor, steamAppName)
 
       gameManagerState = gameManagerState.copy(
-        id,
-        gameManagerState.games.addOne(id -> controlledGame)
+        gameCount = steamGameId + 1,
+        gameManagerState.games.addOne(steamGameId -> controlledGame)
       )
 
     case GameActorDeleted(id) =>
       gameManagerState.games(id).isDisabled = true
+
+    case GameActorUpdated(id, name) =>
+      gameManagerState.games(id).name = name
   }
 }
