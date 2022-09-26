@@ -99,7 +99,6 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
         persist(GameActorDeleted(id)) { _ =>
           gameManagerState.games(id).isDisabled = true
           context.stop(gameManagerState.games(id).actor)
-          log.info(gameManagerState.games(id).isDisabled.toString)
 
           sender() ! GameDeletedResponse(Success(true))
         }
