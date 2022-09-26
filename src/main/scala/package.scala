@@ -8,4 +8,6 @@ package object akkaProject {
   case class GameAlreadyExistsException(message: String) extends RuntimeException(message)
 
   case class AlreadyExistsException(message: String) extends RuntimeException(message)
+
+  case class Response(statusCode: Int, message: Option[String] = None)
 }

@@ -18,7 +18,6 @@ object GameManagerActor {
     games:         mutable.AnyRefMap[BigInt, ActorController]
   )
 
-
   // events
   case class GameActorCreated(id: BigInt, steamAppName: String)
 
@@ -43,18 +42,16 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def createActorName(steamGameId: BigInt): String = s"steam-app-$steamGameId"
 
   def gameAlreadyExists(steamAppName: String): Boolean =
-    gameManagerState.games.exists {
-      case (_, ActorController(_, name, _)) => name == steamAppName
-    }
+    gameManagerState.games.values.exists(game => game.name == steamAppName && !game.isDisabled)
 
   def isGameAvailable(id: BigInt): Boolean =
     gameManagerState.games.contains(id) && !gameManagerState.games(id).isDisabled
 
   override def receiveCommand: Receive = {
-    case command @ CreateGame(steamAppName) =>
-      if (gameAlreadyExists(steamAppName))
+    case createCommand @ CreateGame(steamAppName) =>
+      if (gameAlreadyExists(steamAppName)) {
         sender() ! GameCreatedResponse(Failure(GameAlreadyExistsException("A game with this name already exists.")))
-      else {
+      } else {
         val steamGameId    = gameManagerState.gameCount
         val gameActorName  = createActorName(steamGameId)
         val gameActor      = context.actorOf(
@@ -69,32 +66,45 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
             games = gameManagerState.games.addOne(steamGameId -> controlledGame)
           )
 
-          gameActor.forward(command)
+          gameActor.forward(createCommand)
         }
       }
 
-    case getCommand @ GetGameInfo(id) if isGameAvailable(id) =>
-      gameManagerState.games(id).actor.forward(getCommand)
+    case getCommand @ GetGameInfo(id) =>
+      if (isGameAvailable(id))
+        gameManagerState.games(id).actor.forward(getCommand)
+      else
+        sender() ! GetGameInfoResponse(Failure(NotFoundException(s"A game with the id $id couldn't be found")))
 
-    case getUpdateCommand @ UpdateName(id, newName) if isGameAvailable(id) =>
-      (gameManagerState.games(id).actor ? getUpdateCommand).mapTo[GameUpdatedResponse].pipeTo(sender()).andThen {
-        case Success(gameUpdatedResponse) => gameUpdatedResponse.maybeGame match {
-          case Success(_) =>
-            persist(GameActorUpdated(id, newName)) { _ =>
-              gameManagerState.games(id).name = newName
-            }
+    case updateCommand @ UpdateName(id, newName) =>
+      if (isGameAvailable(id))
+        (gameManagerState.games(id).actor ? updateCommand).mapTo[GameUpdatedResponse].pipeTo(sender()).andThen {
+          case Success(gameUpdatedResponse) => gameUpdatedResponse.maybeGame match {
+            case Success(_) =>
+              persist(GameActorUpdated(id, newName)) { _ =>
+                gameManagerState.games(id).name = newName
+              }
+
+            case _ =>
+          }
 
           case _ =>
         }
+      else
+        sender() ! GetGameInfoResponse(Failure(NotFoundException(s"A game with the id $id couldn't be found")))
 
-        case _ =>
-      }
 
-    case DeleteGame(id) if isGameAvailable(id) =>
-      persist(GameActorDeleted(id)) { _ =>
-        gameManagerState.games(id).isDisabled = true
-        sender() ! GameDeletedResponse(Success(true))
-      }
+    case DeleteGame(id) =>
+      if (isGameAvailable(id))
+        persist(GameActorDeleted(id)) { _ =>
+          gameManagerState.games(id).isDisabled = true
+          context.stop(gameManagerState.games(id).actor)
+          log.info(gameManagerState.games(id).isDisabled.toString)
+
+          sender() ! GameDeletedResponse(Success(true))
+        }
+      else
+        sender() ! GameDeletedResponse(Failure(NotFoundException(s"A game with id $id couldn't be found.")))
 
   }
 
