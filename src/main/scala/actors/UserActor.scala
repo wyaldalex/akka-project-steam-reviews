@@ -7,7 +7,7 @@ import akka.persistence.PersistentActor
 import scala.util.{ Failure, Success, Try }
 
 object UserActor {
-  // 
+  // state
   case class User(userId: BigInt, name: Option[String] = None, numGamesOwned: Option[Int] = None, numReviews: Option[Int] = None)
 
   // commands
@@ -29,8 +29,6 @@ object UserActor {
   case class UserCreated(user: User)
 
   case class UserUpdated(user: User)
-
-  case object UserDeleted
 
 
   // responses

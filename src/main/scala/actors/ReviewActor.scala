@@ -13,10 +13,11 @@ object ReviewActor {
     steamAppId:                 BigInt = 0,
     authorId:                   BigInt = 0,
     region:                     Option[String] = None,
-    review:                     String = "",
-    timestampCreated:           Long = System.currentTimeMillis(),
-    timestampUpdated:           Long = System.currentTimeMillis(),
+    review:                     Option[String] = None,
+    timestampCreated:           Option[Long] = None,
+    timestampUpdated:           Option[Long] = None,
     recommended:                Option[Boolean] = None,
+    votesHelpful:               Option[Long] = None,
     votesFunny:                 Option[Long] = None,
     weightedVoteScore:          Option[Double] = None,
     commentCount:               Option[Int] = None,
@@ -27,7 +28,6 @@ object ReviewActor {
     authorPlaytimeLastTwoWeeks: Option[Double] = None,
     authorPlaytimeAtReview:     Option[Double] = None,
     authorLastPlayed:           Option[Long] = None,
-    isDeleted:                  Boolean = false
   )
 
   // commands
@@ -39,6 +39,7 @@ object ReviewActor {
     timestampUpdated:           Long = System.currentTimeMillis(),
     review:                     Option[String],
     recommended:                Option[Boolean],
+    votesHelpful:               Option[Long],
     votesFunny:                 Option[Long],
     weightedVoteScore:          Option[Double],
     commentCount:               Option[Int],
@@ -53,9 +54,9 @@ object ReviewActor {
 
   case class UpdateReview(review: Review)
 
-  case object DeleteReview
+  case class DeleteReview(reviewId: BigInt)
 
-  case object GetReviewInfo
+  case class GetReviewInfo(reviewId: BigInt)
 
 
   // events
@@ -63,15 +64,13 @@ object ReviewActor {
 
   case class ReviewUpdated(review: Review)
 
-  case object ReviewDeleted
-
 
   // responses
-  case class ReviewCreatedResponse(reviewId: BigInt)
+  case class ReviewCreatedResponse(reviewId: Try[BigInt])
 
   case class ReviewUpdatedResponse(maybeAccount: Try[Review])
 
-  case class GetReviewInfoResponse(maybeAccount: Option[Review])
+  case class GetReviewInfoResponse(maybeAccount: Try[Review])
 
   case class ReviewDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
 
@@ -95,16 +94,21 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
     // the timestamp of creation is immutable, created one
     val timestampCreated            = state.timestampCreated
     // the timestampUpdated is automatically when an update is created
-    val newTimestampUpdated         = System.currentTimeMillis()
+    val newTimestampUpdated         = Some(System.currentTimeMillis())
     // steamPurchase or receivedForFree are immutable since
     // both indicate if the user owns the game and how they acquired it
     val newSteamPurchase            = state.steamPurchase
-    val newReceivedForFree          = state.receivedForFree
     // if the review was created during early access ???
     // should be immutable since the review won't be changed
     val newWrittenDuringEarlyAccess = state.writtenDuringEarlyAccess
 
     // everything else should be changed
+    val newReceivedForFree =
+      if (newState.receivedForFree.isEmpty)
+        state.receivedForFree
+      else
+        newState.receivedForFree
+
     val newRegion =
       if (newState.region.isEmpty)
         state.region
@@ -122,6 +126,12 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
         state.recommended
       else
         newState.recommended
+
+    val newVotesHelpful =
+      if (newState.votesHelpful.isEmpty)
+        state.votesHelpful
+      else
+        newState.votesHelpful
 
     val newVotesFunny =
       if (newState.votesFunny.isEmpty)
@@ -174,6 +184,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
       timestampCreated = timestampCreated,
       timestampUpdated = newTimestampUpdated,
       recommended = newRecommended,
+      votesHelpful = newVotesHelpful,
       votesFunny = newVotesFunny,
       weightedVoteScore = newWeightedVoteScore,
       commentCount = newCommentCount,
@@ -198,6 +209,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
     _,
     review,
     recommended,
+    votesHelpful,
     votesFunny,
     weightedVoteScore,
     commentCount,
@@ -210,8 +222,8 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
     authorLastPlayed
     ) =>
       val id               = state.reviewId
-      val timestampCreated = System.currentTimeMillis()
-      val timestampUpdated = System.currentTimeMillis()
+      val timestampCreated = Some(System.currentTimeMillis())
+      val timestampUpdated = timestampCreated
 
       if (review.isEmpty)
         sender() ! new IllegalArgumentException("You need to provide a valid review.")
@@ -223,10 +235,11 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
             steamAppId,
             authorId,
             region,
-            review.get,
+            review,
             timestampCreated,
             timestampUpdated,
             recommended,
+            votesHelpful,
             votesFunny,
             weightedVoteScore,
             commentCount,
@@ -242,7 +255,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
       ) { event =>
         state = event.review
 
-        sender() ! ReviewCreatedResponse(id)
+        sender() ! ReviewCreatedResponse(Success(id))
       }
 
     case UpdateReview(review) =>
@@ -253,15 +266,8 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
         sender() ! ReviewUpdatedResponse(Success(newState))
       }
 
-    case DeleteReview =>
-      persist(ReviewDeleted) { _ =>
-        state = state.copy(isDeleted = true)
-
-        sender() ! ReviewDeletedResponse(Success(true))
-      }
-
-    case GetReviewInfo =>
-      sender() ! GetReviewInfoResponse(Some(state))
+    case GetReviewInfo(_) =>
+      sender() ! GetReviewInfoResponse(Success(state))
   }
 
   override def receiveRecover: Receive = {
@@ -271,7 +277,5 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
     case ReviewUpdated(review) =>
       state = applyUpdate(review)
 
-    case ReviewDeleted =>
-      state = state.copy(isDeleted = true)
   }
 }

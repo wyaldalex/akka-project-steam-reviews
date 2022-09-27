@@ -7,4 +7,6 @@ package object actors {
 
   case class UserController(actor: ActorRef, var isDisabled: Boolean = false)
 
+  case class ReviewController(actor: ActorRef, var isDisabled: Boolean = false)
+
 }

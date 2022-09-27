@@ -40,7 +40,7 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def isUserAvailable(id: BigInt): Boolean =
     userManagerState.users.contains(id) && !userManagerState.users(id).isDisabled
 
-  def createActorName(steamUserId: BigInt): String = s"steam-app-$steamUserId"
+  def createActorName(steamUserId: BigInt): String = s"steam-user-$steamUserId"
 
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"An user with the id $id couldn't be found"))
