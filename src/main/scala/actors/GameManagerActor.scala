@@ -8,14 +8,14 @@ import akka.util.Timeout
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 object GameManagerActor {
 
   // games
   case class GameManager(
     var gameCount: BigInt = 0,
-    games:         mutable.AnyRefMap[BigInt, ActorController]
+    games:         mutable.AnyRefMap[BigInt, GameController]
   )
 
   // events
@@ -47,18 +47,21 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def isGameAvailable(id: BigInt): Boolean =
     gameManagerState.games.contains(id) && !gameManagerState.games(id).isDisabled
 
+  def notFoundExceptionCreator[T](id: BigInt): Try[T] =
+    Failure(NotFoundException(s"A game with the id $id couldn't be found"))
+
   override def receiveCommand: Receive = {
     case createCommand @ CreateGame(steamAppName) =>
-      if (gameAlreadyExists(steamAppName)) {
+      if (gameAlreadyExists(steamAppName))
         sender() ! GameCreatedResponse(Failure(GameAlreadyExistsException("A game with this name already exists.")))
-      } else {
+      else {
         val steamGameId    = gameManagerState.gameCount
         val gameActorName  = createActorName(steamGameId)
         val gameActor      = context.actorOf(
           GameActor.props(steamGameId),
           gameActorName
         )
-        val controlledGame = ActorController(gameActor, steamAppName)
+        val controlledGame = GameController(gameActor, steamAppName)
 
         persist(GameActorCreated(steamGameId, steamAppName)) { _ =>
           gameManagerState = gameManagerState.copy(
@@ -74,7 +77,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       if (isGameAvailable(id))
         gameManagerState.games(id).actor.forward(getCommand)
       else
-        sender() ! GetGameInfoResponse(Failure(NotFoundException(s"A game with the id $id couldn't be found")))
+        sender() ! GetGameInfoResponse(notFoundExceptionCreator(id))
 
     case updateCommand @ UpdateName(id, newName) =>
       if (isGameAvailable(id))
@@ -91,7 +94,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
           case _ =>
         }
       else
-        sender() ! GetGameInfoResponse(Failure(NotFoundException(s"A game with the id $id couldn't be found")))
+        sender() ! GetGameInfoResponse(notFoundExceptionCreator(id))
 
 
     case DeleteGame(id) =>
@@ -103,7 +106,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
           sender() ! GameDeletedResponse(Success(true))
         }
       else
-        sender() ! GameDeletedResponse(Failure(NotFoundException(s"A game with id $id couldn't be found.")))
+        sender() ! GameDeletedResponse(notFoundExceptionCreator(id))
 
   }
 
@@ -118,7 +121,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
           )
         )
 
-      val controlledGame = ActorController(gameActor, steamAppName)
+      val controlledGame = GameController(gameActor, steamAppName)
 
       gameManagerState = gameManagerState.copy(
         gameCount = steamGameId + 1,

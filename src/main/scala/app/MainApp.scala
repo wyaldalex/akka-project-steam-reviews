@@ -1,7 +1,7 @@
 package dev.galre.josue.akkaProject
 package app
 
-import actors.GameManagerActor
+import actors.{ GameManagerActor, UserManagerActor }
 import http.MainRouter
 
 import akka.actor.ActorSystem
@@ -18,8 +18,9 @@ object MainApp {
     implicit val timeout   : Timeout          = Timeout(5.seconds)
 
     val gameManagerActor = system.actorOf(GameManagerActor.props, "steam-game-manager")
+    val userManagerActor = system.actorOf(UserManagerActor.props, "steam-user-manager")
 
-    val routes = MainRouter(gameManagerActor)
+    val routes = MainRouter(gameManagerActor, userManagerActor)
 
     val boundServer = Http().newServerAt("localhost", 8080).bind(routes)
 

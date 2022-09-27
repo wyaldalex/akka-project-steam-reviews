@@ -8,16 +8,21 @@ import scala.util.{ Failure, Success, Try }
 
 object UserActor {
   // 
-  case class User(userId: Long, name: String = "", numGamesOwned: Int = 0, numReviews: Int = 0, isDeleted: Boolean = false)
+  case class User(userId: BigInt, name: Option[String] = None, numGamesOwned: Option[Int] = None, numReviews: Option[Int] = None)
 
   // commands
-  case class CreateUser(name: String, numGamesOwned: Int, numReviews: Int)
+  case class CreateUser(name: String, numGamesOwned: Option[Int], numReviews: Option[Int])
 
-  case class UpdateUser(name: String, numGamesOwned: Int, numReviews: Int)
+  case class UpdateUser(
+    userId:        BigInt,
+    name:          Option[String] = None,
+    numGamesOwned: Option[Int] = None,
+    numReviews:    Option[Int] = None
+  )
 
-  case object DeleteUser
+  case class DeleteUser(userId: BigInt)
 
-  case object GetUserInfo
+  case class GetUserInfo(userId: BigInt)
 
 
   // events
@@ -29,19 +34,19 @@ object UserActor {
 
 
   // responses
-  case class UserCreatedResponse(id: Long)
+  case class UserCreatedResponse(id: Try[BigInt])
 
   case class UserUpdatedResponse(maybeAccount: Try[User])
 
-  case class GetUserInfoResponse(maybeAccount: Option[User])
+  case class GetUserInfoResponse(maybeAccount: Try[User])
 
   case class UserDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
 
 
-  def props(userId: Long): Props = Props(new UserActor(userId))
+  def props(userId: BigInt): Props = Props(new UserActor(userId))
 }
 
-class UserActor(userId: Long) extends PersistentActor {
+class UserActor(userId: BigInt) extends PersistentActor {
 
   import UserActor._
 
@@ -49,26 +54,24 @@ class UserActor(userId: Long) extends PersistentActor {
 
   override def persistenceId: String = s"steam-userId-$userId"
 
-  def isUserNotDeleted: Boolean = !state.isDeleted
-
   def updateUser(newData: UpdateUser): User =
     User(
       userId,
       if (newData.name.isEmpty) state.name else newData.name,
-      if (newData.numReviews == 0) state.numReviews else newData.numReviews,
-      if (newData.numGamesOwned == 0) state.numGamesOwned else newData.numGamesOwned
+      if (newData.numGamesOwned.isEmpty) state.numGamesOwned else newData.numGamesOwned,
+      if (newData.numReviews.isEmpty) state.numReviews else newData.numReviews,
     )
 
   override def receiveCommand: Receive = {
-    case CreateUser(name, numGamesOwned, numReviews) if isUserNotDeleted =>
+    case CreateUser(name, numGamesOwned, numReviews) =>
       val id = state.userId
 
-      persist(UserCreated(User(id, name, numGamesOwned, numReviews))) { event =>
+      persist(UserCreated(User(id, Some(name), numGamesOwned, numReviews))) { event =>
         state = event.user
-        sender() ! UserCreatedResponse(id)
+        sender() ! UserCreatedResponse(Success(id))
       }
 
-    case command @ UpdateUser(newName, _, _) if isUserNotDeleted =>
+    case command @ UpdateUser(_, newName, _, _) =>
       if (newName == state.name)
         sender() ! UserUpdatedResponse(
           Failure(new IllegalArgumentException("The new name cannot be equal to the previous one."))
@@ -79,17 +82,9 @@ class UserActor(userId: Long) extends PersistentActor {
           sender() ! UserUpdatedResponse(Success(state))
         }
 
-    case DeleteUser if isUserNotDeleted =>
-      persist(UserDeleted) { _ =>
-        state = state.copy(isDeleted = true)
-        sender() ! UserDeletedResponse(Success(true))
-      }
+    case GetUserInfo(_) =>
+      sender() ! GetUserInfoResponse(Success(state))
 
-    case GetUserInfo if isUserNotDeleted =>
-      sender() ! GetUserInfoResponse(Some(state))
-
-    case CreateUser(_, _, _) | UpdateUser(_, _, _) | DeleteUser | GetUserInfo =>
-      sender() ! new IllegalAccessException("The selected account does not exists.")
   }
 
   override def receiveRecover: Receive = {
@@ -99,7 +94,5 @@ class UserActor(userId: Long) extends PersistentActor {
     case UserUpdated(userUpdated) =>
       state = userUpdated
 
-    case UserDeleted =>
-      state = state.copy(isDeleted = true)
   }
 }

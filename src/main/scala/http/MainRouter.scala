@@ -53,12 +53,13 @@ object MainRouter {
       )
   }
 
-  def apply(gameManagerActor: ActorRef)(implicit timeout: Timeout): Route = {
+  def apply(gameManagerActor: ActorRef, userManagerActor: ActorRef)(implicit timeout: Timeout): Route = {
     pathPrefix("api") {
       concat(
         handleExceptions(exceptionHandler) {
           concat(
-            GameRouter(gameManagerActor).routes
+            GameRouter(gameManagerActor).routes,
+            UserRouter(userManagerActor).routes
           )
         },
         SwaggerDocService.routes

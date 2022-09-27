@@ -3,6 +3,8 @@ package dev.galre.josue.akkaProject
 import akka.actor.ActorRef
 
 package object actors {
-  case class ActorController(actor: ActorRef, var name: String, var isDisabled: Boolean = false)
+  case class GameController(actor: ActorRef, var name: String, var isDisabled: Boolean = false)
+
+  case class UserController(actor: ActorRef, var isDisabled: Boolean = false)
 
 }
