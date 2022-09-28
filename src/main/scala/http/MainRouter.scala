@@ -17,9 +17,8 @@ object MainRouter {
 
   implicit val exceptionHandler: ExceptionHandler = ExceptionHandler {
     case _: FileNotFoundException => complete(
-      StatusCodes.NotFound, Response(
-        statusCode = StatusCodes.NotFound.intValue, message = Some("File not found")
-      )
+      StatusCodes.NotFound,
+      Response(statusCode = StatusCodes.NotFound.intValue, message = Some("File not found"))
     )
 
     case NotFoundException(message) =>

@@ -17,16 +17,16 @@ case class UserRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
 
   import actors.user.UserActor._
 
-  private case class CreateUserRequest(name: String, numGamesOwned: Option[Int], numReviews: Option[Int]) {
+  private case class CreateUserRequest(name: String, numGamesOwned: Option[Long], numReviews: Option[Long]) {
     def toCommand: CreateUser = {
-      val newNumGamesOwned = if (numGamesOwned.isEmpty) Some(0) else numGamesOwned
-      val newNumReviews    = if (numReviews.isEmpty) Some(0) else numReviews
+      val newNumGamesOwned = if (numGamesOwned.isEmpty) Some(0L) else numGamesOwned
+      val newNumReviews    = if (numReviews.isEmpty) Some(0L) else numReviews
 
       CreateUser(name, newNumGamesOwned, newNumReviews)
     }
   }
 
-  private case class UpdateUserRequest(name: Option[String], numGamesOwned: Option[Int], numReviews: Option[Int]) {
+  private case class UpdateUserRequest(name: Option[String], numGamesOwned: Option[Long], numReviews: Option[Long]) {
     def toCommand(id: BigInt): UpdateUser = UpdateUser(id, name, numGamesOwned, numReviews)
   }
 
@@ -86,7 +86,12 @@ case class UserRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
             delete {
               onSuccess(deleteUserAction(steamUserId)) {
                 case UserDeletedResponse(Success(_)) =>
-                  complete(Response(statusCode = StatusCodes.OK.intValue, message = Some("User was deleted successfully.")))
+                  complete(Response(
+                    statusCode = StatusCodes
+                      .OK
+                      .intValue, message = Some("UserState was deleted successfully.")
+                  )
+                  )
 
                 case UserDeletedResponse(Failure(exception)) =>
                   throw exception

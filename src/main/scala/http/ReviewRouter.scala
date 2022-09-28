@@ -32,7 +32,7 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
     authorPlaytimeForever:      Option[Double],
     authorPlaytimeLastTwoWeeks: Option[Double],
     authorPlaytimeAtReview:     Option[Double],
-    authorLastPlayed:           Option[Long]
+    authorLastPlayed:           Option[Double]
   ) {
     def toCommand: CreateReview = {
       val timestampCreated            = System.currentTimeMillis()
@@ -78,13 +78,13 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
     authorPlaytimeForever:      Option[Double],
     authorPlaytimeLastTwoWeeks: Option[Double],
     authorPlaytimeAtReview:     Option[Double],
-    authorLastPlayed:           Option[Long]
+    authorLastPlayed:           Option[Double]
   ) {
     def toCommand(id: BigInt): UpdateReview = {
       val weightedVoteScore = Option(0D)
 
       UpdateReview(
-        Review(
+        ReviewState(
           reviewId = id,
           region = region,
           review = review,
@@ -160,7 +160,12 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
             delete {
               onSuccess(deleteReviewAction(steamAppId)) {
                 case ReviewDeletedResponse(Success(_)) =>
-                  complete(Response(statusCode = StatusCodes.OK.intValue, message = Some("Review was deleted successfully.")))
+                  complete(Response(
+                    statusCode = StatusCodes
+                      .OK
+                      .intValue, message = Some("ReviewState was deleted successfully.")
+                  )
+                  )
 
                 case ReviewDeletedResponse(Failure(exception)) =>
                   throw exception

@@ -2,8 +2,12 @@ package dev.galre.josue.akkaProject
 package actors.data
 
 import actors.game.GameActor.GameState
-import actors.review.ReviewActor.Review
-import actors.user.UserActor.User
+import actors.game.GameManagerActor.CreateGameFromCSV
+import actors.review.ReviewActor.ReviewState
+import actors.review.ReviewManagerActor.CreateReviewFromCSV
+import actors.user.UserActor.UserState
+import actors.user.UserManagerActor.CreateUserFromCSV
+import actors.{ FinishCSVLoad, InitCSVLoad }
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.util.Timeout
@@ -12,13 +16,13 @@ object SteamManagerActor {
 
   case object InitCSVLoadToManagers
 
-  case object FinishCSVLoad
+  case object FinishCSVLoadToManagers
 
   case class CSVLoadFailure(exception: Throwable)
 
   case class CSVDataToLoad(
-    review: Review,
-    user:   User,
+    review: ReviewState,
+    user:   UserState,
     game:   GameState
   )
 
@@ -40,19 +44,36 @@ class SteamManagerActor(
   extends Actor
   with ActorLogging {
 
-  import actors.InitCSVLoad
-
   import SteamManagerActor._
 
   override def receive: Receive = {
     case InitCSVLoadToManagers =>
+      log.info("Initialized CSV Load mode!")
       gameManagerActor ! InitCSVLoad
       userManagerActor ! InitCSVLoad
       reviewManagerActor ! InitCSVLoad
+      sender() ! true
 
-    case FinishCSVLoad =>
+    case command @ CSVDataToLoad(review, user, game) =>
+      log.info(s"$command")
+      gameManagerActor ! CreateGameFromCSV(game)
+      userManagerActor ! CreateUserFromCSV(user)
+      reviewManagerActor ! CreateReviewFromCSV(review)
+      sender() ! "ok!"
 
-    case CSVLoadFailure =>
+    case FinishCSVLoadToManagers =>
+      gameManagerActor ! FinishCSVLoad
+      userManagerActor ! FinishCSVLoad
+      reviewManagerActor ! FinishCSVLoad
+      log.info("Finished successfully CSV Load")
 
+    case CSVLoadFailure(exception) =>
+      log.error(
+        s"CSV Load failed due to ${exception.getMessage}. Stack trace: ${
+          exception
+            .getStackTrace
+            .mkString("Array(", ", ", ")")
+        }"
+      )
   }
 }

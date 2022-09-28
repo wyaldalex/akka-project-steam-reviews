@@ -8,26 +8,26 @@ import scala.util.{ Success, Try }
 
 object ReviewActor {
   // state
-  case class Review(
+  case class ReviewState(
     reviewId:                   BigInt,
-    steamAppId:                 BigInt = 0,
-    authorId:                   BigInt = 0,
+    steamAppId:                 BigInt = BigInt(0),
+    authorId:                   BigInt = BigInt(0),
     region:                     Option[String] = None,
     review:                     Option[String] = None,
-    timestampCreated:           Option[Long] = None,
-    timestampUpdated:           Option[Long] = None,
+    timestampCreated:           Option[BigInt] = None,
+    timestampUpdated:           Option[BigInt] = None,
     recommended:                Option[Boolean] = None,
-    votesHelpful:               Option[Long] = None,
-    votesFunny:                 Option[Long] = None,
-    weightedVoteScore:          Option[Double] = None,
-    commentCount:               Option[Long] = None,
+    votesHelpful:               Option[BigInt] = None,
+    votesFunny:                 Option[BigInt] = None,
+    weightedVoteScore:          Option[BigDecimal] = None,
+    commentCount:               Option[BigInt] = None,
     steamPurchase:              Option[Boolean] = None,
     receivedForFree:            Option[Boolean] = None,
     writtenDuringEarlyAccess:   Option[Boolean] = None,
-    authorPlaytimeForever:      Option[Double] = None,
-    authorPlaytimeLastTwoWeeks: Option[Double] = None,
-    authorPlaytimeAtReview:     Option[Double] = None,
-    authorLastPlayed:           Option[Long] = None,
+    authorPlaytimeForever:      Option[BigDecimal] = None,
+    authorPlaytimeLastTwoWeeks: Option[BigDecimal] = None,
+    authorPlaytimeAtReview:     Option[BigDecimal] = None,
+    authorLastPlayed:           Option[BigDecimal] = None,
   )
 
   // commands
@@ -35,24 +35,24 @@ object ReviewActor {
     steamAppId:                 BigInt,
     authorId:                   BigInt,
     region:                     Option[String],
-    timestampCreated:           Long = System.currentTimeMillis(),
-    timestampUpdated:           Long = System.currentTimeMillis(),
+    timestampCreated:           BigInt = System.currentTimeMillis(),
+    timestampUpdated:           BigInt = System.currentTimeMillis(),
     review:                     Option[String],
     recommended:                Option[Boolean],
-    votesHelpful:               Option[Long],
-    votesFunny:                 Option[Long],
-    weightedVoteScore:          Option[Double],
-    commentCount:               Option[Long],
+    votesHelpful:               Option[BigInt],
+    votesFunny:                 Option[BigInt],
+    weightedVoteScore:          Option[BigDecimal],
+    commentCount:               Option[BigInt],
     steamPurchase:              Option[Boolean],
     receivedForFree:            Option[Boolean],
     writtenDuringEarlyAccess:   Option[Boolean],
-    authorPlaytimeForever:      Option[Double],
-    authorPlaytimeLastTwoWeeks: Option[Double],
-    authorPlaytimeAtReview:     Option[Double],
-    authorLastPlayed:           Option[Long]
+    authorPlaytimeForever:      Option[BigDecimal],
+    authorPlaytimeLastTwoWeeks: Option[BigDecimal],
+    authorPlaytimeAtReview:     Option[BigDecimal],
+    authorLastPlayed:           Option[BigDecimal]
   )
 
-  case class UpdateReview(review: Review)
+  case class UpdateReview(review: ReviewState)
 
   case class DeleteReview(reviewId: BigInt)
 
@@ -60,17 +60,17 @@ object ReviewActor {
 
 
   // events
-  case class ReviewCreated(review: Review)
+  case class ReviewCreated(review: ReviewState)
 
-  case class ReviewUpdated(review: Review)
+  case class ReviewUpdated(review: ReviewState)
 
 
   // responses
   case class ReviewCreatedResponse(reviewId: Try[BigInt])
 
-  case class ReviewUpdatedResponse(maybeAccount: Try[Review])
+  case class ReviewUpdatedResponse(maybeAccount: Try[ReviewState])
 
-  case class GetReviewInfoResponse(maybeAccount: Try[Review])
+  case class GetReviewInfoResponse(maybeAccount: Try[ReviewState])
 
   case class ReviewDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
 
@@ -82,9 +82,9 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
 
   import ReviewActor._
 
-  var state: Review = Review(reviewId)
+  var state: ReviewState = ReviewState(reviewId)
 
-  def applyUpdate(newState: Review): Review = {
+  def applyUpdate(newState: ReviewState): ReviewState = {
     // no need to update this information
     // reviewId is unique
     val reviewId                    = state.reviewId
@@ -94,7 +94,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
     // the timestamp of creation is immutable, created one
     val timestampCreated            = state.timestampCreated
     // the timestampUpdated is automatically when an update is created
-    val newTimestampUpdated         = Some(System.currentTimeMillis())
+    val newTimestampUpdated         = Some(BigInt(System.currentTimeMillis()))
     // steamPurchase or receivedForFree are immutable since
     // both indicate if the user owns the game and how they acquired it
     val newSteamPurchase            = state.steamPurchase
@@ -175,7 +175,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
       else
         newState.authorLastPlayed
 
-    Review(
+    ReviewState(
       reviewId = reviewId,
       steamAppId = steamAppId,
       authorId = authorId,
@@ -222,7 +222,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
     authorLastPlayed
     ) =>
       val id               = state.reviewId
-      val timestampCreated = Some(System.currentTimeMillis())
+      val timestampCreated = Some(BigInt(System.currentTimeMillis()))
       val timestampUpdated = timestampCreated
 
       if (review.isEmpty)
@@ -230,7 +230,7 @@ class ReviewActor(reviewId: BigInt) extends PersistentActor {
 
       persist(
         ReviewCreated(
-          Review(
+          ReviewState(
             id,
             steamAppId,
             authorId,

@@ -5,12 +5,15 @@ import actors.data.{ CSVLoaderActor, SteamManagerActor }
 import actors.game.GameManagerActor
 import actors.review.ReviewManagerActor
 import actors.user.UserManagerActor
+import http.MainRouter
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.util.Timeout
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.{ Failure, Success }
 
 object MainApp {
   def startHttpServer()(implicit system: ActorSystem): Unit = {
@@ -40,19 +43,19 @@ object MainApp {
 
     csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews_sample.csv")
 
-    //        val routes = MainRouter(gameManagerActor, userManagerActor, reviewManagerActor)
-    //
-    //        val boundServer = Http().newServerAt("localhost", 8080).bind(routes)
-    //
-    //        boundServer.onComplete {
-    //          case Success(binding) =>
-    //            val address = binding.localAddress
-    //            system.log.info(s"Server started at: http://${address.getAddress}:${address.getPort}")
-    //
-    //          case Failure(exception) =>
-    //            system.log.error(s"Failed to bind server due to: $exception")
-    //            system.terminate()
-    //        }
+    val routes = MainRouter(gameManagerActor, userManagerActor, reviewManagerActor)
+
+    val boundServer = Http().newServerAt("localhost", 8080).bind(routes)
+
+    boundServer.onComplete {
+      case Success(binding) =>
+        val address = binding.localAddress
+        system.log.info(s"Server started at: http://${address.getAddress}:${address.getPort}")
+
+      case Failure(exception) =>
+        system.log.error(s"Failed to bind server due to: $exception")
+        system.terminate()
+    }
 
   }
 

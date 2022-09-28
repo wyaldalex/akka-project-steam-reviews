@@ -8,16 +8,16 @@ import scala.util.{ Failure, Success, Try }
 
 object UserActor {
   // state
-  case class User(userId: BigInt, name: Option[String] = None, numGamesOwned: Option[Int] = None, numReviews: Option[Int] = None)
+  case class UserState(userId: BigInt, name: Option[String] = None, numGamesOwned: Option[Long] = None, numReviews: Option[Long] = None)
 
   // commands
-  case class CreateUser(name: String, numGamesOwned: Option[Int], numReviews: Option[Int])
+  case class CreateUser(name: String, numGamesOwned: Option[Long], numReviews: Option[Long])
 
   case class UpdateUser(
     userId:        BigInt,
     name:          Option[String] = None,
-    numGamesOwned: Option[Int] = None,
-    numReviews:    Option[Int] = None
+    numGamesOwned: Option[Long] = None,
+    numReviews:    Option[Long] = None
   )
 
   case class DeleteUser(userId: BigInt)
@@ -26,17 +26,17 @@ object UserActor {
 
 
   // events
-  case class UserCreated(user: User)
+  case class UserCreated(user: UserState)
 
-  case class UserUpdated(user: User)
+  case class UserUpdated(user: UserState)
 
 
   // responses
   case class UserCreatedResponse(id: Try[BigInt])
 
-  case class UserUpdatedResponse(maybeAccount: Try[User])
+  case class UserUpdatedResponse(maybeAccount: Try[UserState])
 
-  case class GetUserInfoResponse(maybeAccount: Try[User])
+  case class GetUserInfoResponse(maybeAccount: Try[UserState])
 
   case class UserDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
 
@@ -48,12 +48,12 @@ class UserActor(userId: BigInt) extends PersistentActor {
 
   import UserActor._
 
-  var state: User = User(userId)
+  var state: UserState = UserState(userId)
 
   override def persistenceId: String = s"steam-userId-$userId"
 
-  def updateUser(newData: UpdateUser): User =
-    User(
+  def updateUser(newData: UpdateUser): UserState =
+    UserState(
       userId,
       if (newData.name.isEmpty) state.name else newData.name,
       if (newData.numGamesOwned.isEmpty) state.numGamesOwned else newData.numGamesOwned,
@@ -64,7 +64,7 @@ class UserActor(userId: BigInt) extends PersistentActor {
     case CreateUser(name, numGamesOwned, numReviews) =>
       val id = state.userId
 
-      persist(UserCreated(User(id, Some(name), numGamesOwned, numReviews))) { event =>
+      persist(UserCreated(UserState(id, Some(name), numGamesOwned, numReviews))) { event =>
         state = event.user
         sender() ! UserCreatedResponse(Success(id))
       }
