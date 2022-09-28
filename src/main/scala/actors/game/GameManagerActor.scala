@@ -1,5 +1,7 @@
 package dev.galre.josue.akkaProject
-package actors
+package actors.game
+
+import actors.GameController
 
 import akka.actor.{ ActorLogging, Props }
 import akka.pattern.{ ask, pipe }

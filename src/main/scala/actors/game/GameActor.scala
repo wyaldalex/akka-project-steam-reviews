@@ -1,5 +1,5 @@
 package dev.galre.josue.akkaProject
-package actors
+package actors.game
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor

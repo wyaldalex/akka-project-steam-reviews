@@ -1,5 +1,7 @@
 package dev.galre.josue.akkaProject
-package actors
+package actors.user
+
+import actors.UserController
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor

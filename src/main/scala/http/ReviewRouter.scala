@@ -15,7 +15,7 @@ import scala.util.{ Failure, Success }
 
 case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
 
-  import actors.ReviewActor._
+  import actors.review.ReviewActor._
 
   private case class CreateReviewRequest(
     steamAppId:                 BigInt,
@@ -23,7 +23,7 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
     region:                     String,
     review:                     String,
     recommended:                Boolean,
-    commentCount:               Option[Int],
+    commentCount:               Option[Long],
     votesFunny:                 Option[Long],
     votesHelpful:               Option[Long],
     steamPurchase:              Boolean,
@@ -73,7 +73,7 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
     recommended:                Option[Boolean],
     votesHelpful:               Option[Long],
     votesFunny:                 Option[Long],
-    commentCount:               Option[Int],
+    commentCount:               Option[Long],
     receivedForFree:            Option[Boolean],
     authorPlaytimeForever:      Option[Double],
     authorPlaytimeLastTwoWeeks: Option[Double],

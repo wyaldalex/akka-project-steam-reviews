@@ -9,4 +9,8 @@ package object actors {
 
   case class ReviewController(actor: ActorRef, var isDisabled: Boolean = false)
 
+  case object InitCSVLoad
+
+  case object FinishCSVLoad
+
 }

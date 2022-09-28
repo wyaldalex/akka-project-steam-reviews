@@ -1,6 +1,7 @@
 package dev.galre.josue.akkaProject
-package actors
+package actors.review
 
+import actors.ReviewController
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor

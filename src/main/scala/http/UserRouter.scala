@@ -15,7 +15,7 @@ import scala.util.{ Failure, Success }
 
 case class UserRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
 
-  import actors.UserActor._
+  import actors.user.UserActor._
 
   private case class CreateUserRequest(name: String, numGamesOwned: Option[Int], numReviews: Option[Int]) {
     def toCommand: CreateUser = {

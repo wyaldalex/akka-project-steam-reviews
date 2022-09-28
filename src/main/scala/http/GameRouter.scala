@@ -15,7 +15,7 @@ import scala.util.{ Failure, Success }
 
 case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
 
-  import actors.GameActor._
+  import actors.game.GameActor._
 
   private case class CreateGameRequest(steamAppName: String) {
     def toCommand: CreateGame = CreateGame(steamAppName)

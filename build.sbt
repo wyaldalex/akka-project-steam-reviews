@@ -13,6 +13,7 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   // Akka streams
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+  "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "4.0.0",
   // Akka http
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion,

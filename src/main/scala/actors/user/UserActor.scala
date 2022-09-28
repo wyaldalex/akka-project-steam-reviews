@@ -1,5 +1,5 @@
 package dev.galre.josue.akkaProject
-package actors
+package actors.user
 
 import akka.actor.Props
 import akka.persistence.PersistentActor

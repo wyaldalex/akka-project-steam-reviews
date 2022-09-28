@@ -1,5 +1,5 @@
 package dev.galre.josue.akkaProject
-package actors
+package actors.review
 
 import akka.actor.Props
 import akka.persistence.PersistentActor
@@ -20,7 +20,7 @@ object ReviewActor {
     votesHelpful:               Option[Long] = None,
     votesFunny:                 Option[Long] = None,
     weightedVoteScore:          Option[Double] = None,
-    commentCount:               Option[Int] = None,
+    commentCount:               Option[Long] = None,
     steamPurchase:              Option[Boolean] = None,
     receivedForFree:            Option[Boolean] = None,
     writtenDuringEarlyAccess:   Option[Boolean] = None,
@@ -42,7 +42,7 @@ object ReviewActor {
     votesHelpful:               Option[Long],
     votesFunny:                 Option[Long],
     weightedVoteScore:          Option[Double],
-    commentCount:               Option[Int],
+    commentCount:               Option[Long],
     steamPurchase:              Option[Boolean],
     receivedForFree:            Option[Boolean],
     writtenDuringEarlyAccess:   Option[Boolean],
