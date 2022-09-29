@@ -18,6 +18,8 @@ object SteamManagerActor {
 
   case object FinishCSVLoadToManagers
 
+  case object Ack
+
   case class CSVLoadFailure(exception: Throwable)
 
   case class CSVDataToLoad(
@@ -52,14 +54,14 @@ class SteamManagerActor(
       gameManagerActor ! InitCSVLoad
       userManagerActor ! InitCSVLoad
       reviewManagerActor ! InitCSVLoad
-      sender() ! true
+      sender() ! Ack
 
     case command @ CSVDataToLoad(review, user, game) =>
-      log.info(s"$command")
+      //      log.info(s"$command")
       gameManagerActor ! CreateGameFromCSV(game)
       userManagerActor ! CreateUserFromCSV(user)
       reviewManagerActor ! CreateReviewFromCSV(review)
-      sender() ! "ok!"
+      sender() ! Ack
 
     case FinishCSVLoadToManagers =>
       gameManagerActor ! FinishCSVLoad
@@ -69,11 +71,10 @@ class SteamManagerActor(
 
     case CSVLoadFailure(exception) =>
       log.error(
-        s"CSV Load failed due to ${exception.getMessage}. Stack trace: ${
+        s"CSV Load failed due to ${exception.getMessage}.\nStack trace: ${
           exception
-            .getStackTrace
-            .mkString("Array(", ", ", ")")
-        }"
+            .printStackTrace()
+        }\nexception: ${exception.toString}"
       )
   }
 }

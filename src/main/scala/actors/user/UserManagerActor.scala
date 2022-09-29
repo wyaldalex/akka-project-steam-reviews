@@ -55,10 +55,10 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def loadCSVData: Receive = {
     case CreateUserFromCSV(UserState(userId, name, numGamesOwned, numReviews)) =>
       if (userManagerState.users.contains(userId)) {
-        log.info(s"User with Id $userId already exists, skipping creation...")
+        //        log.info(s"User with Id $userId already exists, skipping creation...")
       }
       else {
-        log.info(s"Creating user with id $userId")
+        //        log.info(s"Creating user with id $userId")
 
         val userActor      = context.actorOf(
           UserActor.props(userId),
@@ -79,13 +79,13 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       context.unbecome()
 
     case SaveSnapshotSuccess(metadata) =>
-      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
 
     case SaveSnapshotFailure(metadata, reason) =>
-      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
 
     case any: Any =>
-      log.info(s"Got unhandled message: $any")
+    //      log.info(s"Got unhandled message: $any")
   }
 
 

@@ -56,10 +56,10 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
     case CreateReviewFromCSV(review) =>
       val steamReviewId = review.reviewId
       if (reviewManagerState.reviews.contains(steamReviewId)) {
-        log.info(s"Review with Id $steamReviewId already exists, skipping creation...")
+        //        log.info(s"Review with Id $steamReviewId already exists, skipping creation...")
       }
       else {
-        log.info(s"Creating review with id $steamReviewId")
+        //        log.info(s"Creating review with id $steamReviewId")
 
         val reviewActor      = context.actorOf(
           ReviewActor.props(steamReviewId),
@@ -99,11 +99,13 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       context.unbecome()
 
     case SaveSnapshotSuccess(metadata) =>
-      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
 
     case SaveSnapshotFailure(metadata, reason) =>
-      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
 
+    case any: Any =>
+    //      log.info(s"Got unhandled message: $any")
   }
 
 

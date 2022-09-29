@@ -60,10 +60,10 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def loadCSVData: Receive = {
     case CreateGameFromCSV(GameState(steamAppId, steamAppName)) =>
       if (gameManagerState.games.contains(steamAppId)) {
-        log.info(s"Steam App with Id $steamAppId already exists, skipping creation...")
+        //        log.info(s"Steam App with Id $steamAppId already exists, skipping creation...")
       }
       else {
-        log.info(s"Creating game with id $steamAppId")
+        //        log.info(s"Creating game with id $steamAppId")
 
         val gameActor      = context.actorOf(
           GameActor.props(steamAppId),
@@ -84,13 +84,13 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       context.unbecome()
 
     case SaveSnapshotSuccess(metadata) =>
-      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
 
     case SaveSnapshotFailure(metadata, reason) =>
-      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
 
     case any: Any =>
-      log.info(s"Got unhandled message: $any")
+    //      log.info(s"Got unhandled message: $any")
   }
 
   override def receiveCommand: Receive = {

@@ -41,7 +41,7 @@ object MainApp {
       "json-loader"
     )
 
-    csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews_sample.csv")
+    csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews.csv")
 
     val routes = MainRouter(gameManagerActor, userManagerActor, reviewManagerActor)
 

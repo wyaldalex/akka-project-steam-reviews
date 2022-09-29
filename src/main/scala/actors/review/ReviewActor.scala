@@ -19,15 +19,15 @@ object ReviewActor {
     recommended:                Option[Boolean] = None,
     votesHelpful:               Option[BigInt] = None,
     votesFunny:                 Option[BigInt] = None,
-    weightedVoteScore:          Option[BigDecimal] = None,
+    weightedVoteScore:          Option[Double] = None,
     commentCount:               Option[BigInt] = None,
     steamPurchase:              Option[Boolean] = None,
     receivedForFree:            Option[Boolean] = None,
     writtenDuringEarlyAccess:   Option[Boolean] = None,
-    authorPlaytimeForever:      Option[BigDecimal] = None,
-    authorPlaytimeLastTwoWeeks: Option[BigDecimal] = None,
-    authorPlaytimeAtReview:     Option[BigDecimal] = None,
-    authorLastPlayed:           Option[BigDecimal] = None,
+    authorPlaytimeForever:      Option[Double] = None,
+    authorPlaytimeLastTwoWeeks: Option[Double] = None,
+    authorPlaytimeAtReview:     Option[Double] = None,
+    authorLastPlayed:           Option[Double] = None,
   )
 
   // commands
@@ -41,15 +41,15 @@ object ReviewActor {
     recommended:                Option[Boolean],
     votesHelpful:               Option[BigInt],
     votesFunny:                 Option[BigInt],
-    weightedVoteScore:          Option[BigDecimal],
+    weightedVoteScore:          Option[Double],
     commentCount:               Option[BigInt],
     steamPurchase:              Option[Boolean],
     receivedForFree:            Option[Boolean],
     writtenDuringEarlyAccess:   Option[Boolean],
-    authorPlaytimeForever:      Option[BigDecimal],
-    authorPlaytimeLastTwoWeeks: Option[BigDecimal],
-    authorPlaytimeAtReview:     Option[BigDecimal],
-    authorLastPlayed:           Option[BigDecimal]
+    authorPlaytimeForever:      Option[Double],
+    authorPlaytimeLastTwoWeeks: Option[Double],
+    authorPlaytimeAtReview:     Option[Double],
+    authorLastPlayed:           Option[Double]
   )
 
   case class UpdateReview(review: ReviewState)
