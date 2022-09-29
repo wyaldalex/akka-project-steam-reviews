@@ -1,8 +1,8 @@
 package dev.galre.josue.akkaProject
 package actors.review
 
+import actors.ReviewController
 import actors.review.ReviewActor.ReviewState
-import actors.{ FinishCSVLoad, InitCSVLoad, ReviewController }
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.{ PersistentActor, SaveSnapshotFailure, SaveSnapshotSuccess }
@@ -51,64 +51,6 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"A review with the id $id couldn't be found"))
 
-
-  def loadCSVData: Receive = {
-    case CreateReviewFromCSV(review) =>
-      val steamReviewId = review.reviewId
-      if (reviewManagerState.reviews.contains(steamReviewId)) {
-        //        log.info(s"Review with Id $steamReviewId already exists, skipping creation...")
-      }
-      else {
-        //        log.info(s"Creating review with id $steamReviewId")
-
-        val reviewActor      = context.actorOf(
-          ReviewActor.props(steamReviewId),
-          createActorName(steamReviewId)
-        )
-        val controlledReview = ReviewController(reviewActor)
-
-        persist(ReviewActorCreated(steamReviewId)) { _ =>
-          reviewManagerState = reviewManagerState.copy(
-            reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
-          )
-
-          reviewActor ! CreateReview(
-            steamAppId = review.steamAppId,
-            authorId = review.authorId,
-            region = review.region,
-            timestampCreated = review.timestampCreated.getOrElse(longToBigInt(System.currentTimeMillis())),
-            timestampUpdated = review.timestampUpdated.getOrElse(System.currentTimeMillis()),
-            review = review.review,
-            recommended = review.recommended,
-            votesHelpful = review.votesHelpful,
-            votesFunny = review.votesFunny,
-            weightedVoteScore = review.weightedVoteScore,
-            commentCount = review.commentCount,
-            steamPurchase = review.steamPurchase,
-            receivedForFree = review.receivedForFree,
-            writtenDuringEarlyAccess = review.writtenDuringEarlyAccess,
-            authorPlaytimeForever = review.authorPlaytimeForever,
-            authorPlaytimeLastTwoWeeks = review.authorPlaytimeLastTwoWeeks,
-            authorPlaytimeAtReview = review.authorPlaytimeAtReview,
-            authorLastPlayed = review.authorLastPlayed
-          )
-        }
-      }
-
-    case FinishCSVLoad =>
-      context.unbecome()
-
-    case SaveSnapshotSuccess(metadata) =>
-    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
-
-    case SaveSnapshotFailure(metadata, reason) =>
-    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
-
-    case any: Any =>
-    //      log.info(s"Got unhandled message: $any")
-  }
-
-
   override def receiveCommand: Receive = {
     case createCommand: CreateReview =>
       val steamReviewId    = reviewManagerState.reviewCount
@@ -151,11 +93,59 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       else
         sender() ! ReviewDeletedResponse(notFoundExceptionCreator(id))
 
-    case InitCSVLoad =>
-      context.become(loadCSVData)
-
     case any: Any =>
       log.info(s"Got unhandled message: $any")
+
+    case CreateReviewFromCSV(review) =>
+      val steamReviewId = review.reviewId
+      if (reviewManagerState.reviews.contains(steamReviewId)) {
+        //        log.info(s"Review with Id $steamReviewId already exists, skipping creation...")
+      }
+      else {
+        //        log.info(s"Creating review with id $steamReviewId")
+
+        val reviewActor      = context.actorOf(
+          ReviewActor.props(steamReviewId),
+          createActorName(steamReviewId)
+        )
+        val controlledReview = ReviewController(reviewActor)
+
+        persist(ReviewActorCreated(steamReviewId)) { _ =>
+          reviewManagerState = reviewManagerState.copy(
+            reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
+          )
+
+          reviewActor ! CreateReview(
+            steamAppId = review.steamAppId,
+            authorId = review.authorId,
+            region = review.region,
+            timestampCreated = review.timestampCreated.getOrElse(longToBigInt(System.currentTimeMillis())),
+            timestampUpdated = review.timestampUpdated.getOrElse(System.currentTimeMillis()),
+            review = review.review,
+            recommended = review.recommended,
+            votesHelpful = review.votesHelpful,
+            votesFunny = review.votesFunny,
+            weightedVoteScore = review.weightedVoteScore,
+            commentCount = review.commentCount,
+            steamPurchase = review.steamPurchase,
+            receivedForFree = review.receivedForFree,
+            writtenDuringEarlyAccess = review.writtenDuringEarlyAccess,
+            authorPlaytimeForever = review.authorPlaytimeForever,
+            authorPlaytimeLastTwoWeeks = review.authorPlaytimeLastTwoWeeks,
+            authorPlaytimeAtReview = review.authorPlaytimeAtReview,
+            authorLastPlayed = review.authorLastPlayed
+          )
+        }
+      }
+
+    case SaveSnapshotSuccess(metadata) =>
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+
+    case SaveSnapshotFailure(metadata, reason) =>
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+
+    case any: Any =>
+    //      log.info(s"Got unhandled message: $any")
 
   }
 

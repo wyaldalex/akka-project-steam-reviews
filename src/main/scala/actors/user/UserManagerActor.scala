@@ -1,8 +1,8 @@
 package dev.galre.josue.akkaProject
 package actors.user
 
+import actors.UserController
 import actors.user.UserActor.UserState
-import actors.{ FinishCSVLoad, InitCSVLoad, UserController }
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.{ PersistentActor, SaveSnapshotFailure, SaveSnapshotSuccess }
@@ -51,44 +51,6 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"An user with the id $id couldn't be found"))
 
-
-  def loadCSVData: Receive = {
-    case CreateUserFromCSV(UserState(userId, name, numGamesOwned, numReviews)) =>
-      if (userManagerState.users.contains(userId)) {
-        //        log.info(s"User with Id $userId already exists, skipping creation...")
-      }
-      else {
-        //        log.info(s"Creating user with id $userId")
-
-        val userActor      = context.actorOf(
-          UserActor.props(userId),
-          createActorName(userId)
-        )
-        val controlledUser = UserController(userActor)
-
-        persist(UserActorCreated(userId)) { _ =>
-          userManagerState = userManagerState.copy(
-            users = userManagerState.users.addOne(userId -> controlledUser)
-          )
-
-          userActor ! CreateUser(name.getOrElse(""), numGamesOwned, numReviews)
-        }
-      }
-
-    case FinishCSVLoad =>
-      context.unbecome()
-
-    case SaveSnapshotSuccess(metadata) =>
-    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
-
-    case SaveSnapshotFailure(metadata, reason) =>
-    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
-
-    case any: Any =>
-    //      log.info(s"Got unhandled message: $any")
-  }
-
-
   override def receiveCommand: Receive = {
     case createCommand @ CreateUser(_, _, _) =>
       val steamUserId    = userManagerState.userCount
@@ -131,8 +93,37 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       else
         sender() ! UserDeletedResponse(notFoundExceptionCreator(id))
 
-    case InitCSVLoad =>
-      context.become(loadCSVData)
+
+    case CreateUserFromCSV(UserState(userId, name, numGamesOwned, numReviews)) =>
+      if (userManagerState.users.contains(userId)) {
+        //        log.info(s"User with Id $userId already exists, skipping creation...")
+      }
+      else {
+        //        log.info(s"Creating user with id $userId")
+
+        val userActor      = context.actorOf(
+          UserActor.props(userId),
+          createActorName(userId)
+        )
+        val controlledUser = UserController(userActor)
+
+        persist(UserActorCreated(userId)) { _ =>
+          userManagerState = userManagerState.copy(
+            users = userManagerState.users.addOne(userId -> controlledUser)
+          )
+
+          userActor ! CreateUser(name.getOrElse(""), numGamesOwned, numReviews)
+        }
+      }
+
+    case SaveSnapshotSuccess(metadata) =>
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+
+    case SaveSnapshotFailure(metadata, reason) =>
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+
+    case any: Any =>
+    //      log.info(s"Got unhandled message: $any")
 
   }
 

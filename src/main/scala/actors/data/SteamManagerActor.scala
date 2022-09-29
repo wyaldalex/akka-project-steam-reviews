@@ -1,13 +1,13 @@
 package dev.galre.josue.akkaProject
 package actors.data
 
+import actors.FinishCSVLoad
 import actors.game.GameActor.GameState
 import actors.game.GameManagerActor.CreateGameFromCSV
 import actors.review.ReviewActor.ReviewState
 import actors.review.ReviewManagerActor.CreateReviewFromCSV
 import actors.user.UserActor.UserState
 import actors.user.UserManagerActor.CreateUserFromCSV
-import actors.{ FinishCSVLoad, InitCSVLoad }
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.util.Timeout
@@ -49,15 +49,7 @@ class SteamManagerActor(
   import SteamManagerActor._
 
   override def receive: Receive = {
-    case InitCSVLoadToManagers =>
-      log.info("Initialized CSV Load mode!")
-      gameManagerActor ! InitCSVLoad
-      userManagerActor ! InitCSVLoad
-      reviewManagerActor ! InitCSVLoad
-      sender() ! Ack
-
-    case command @ CSVDataToLoad(review, user, game) =>
-      //      log.info(s"$command")
+    case CSVDataToLoad(review, user, game) =>
       gameManagerActor ! CreateGameFromCSV(game)
       userManagerActor ! CreateUserFromCSV(user)
       reviewManagerActor ! CreateReviewFromCSV(review)

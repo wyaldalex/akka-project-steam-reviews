@@ -1,8 +1,8 @@
 package dev.galre.josue.akkaProject
 package actors.game
 
+import actors.GameController
 import actors.game.GameActor.GameState
-import actors.{ FinishCSVLoad, GameController, InitCSVLoad }
 
 import akka.actor.{ ActorLogging, Props }
 import akka.pattern.{ ask, pipe }
@@ -55,43 +55,6 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"A game with the id $id couldn't be found"))
-
-
-  def loadCSVData: Receive = {
-    case CreateGameFromCSV(GameState(steamAppId, steamAppName)) =>
-      if (gameManagerState.games.contains(steamAppId)) {
-        //        log.info(s"Steam App with Id $steamAppId already exists, skipping creation...")
-      }
-      else {
-        //        log.info(s"Creating game with id $steamAppId")
-
-        val gameActor      = context.actorOf(
-          GameActor.props(steamAppId),
-          createActorName(steamAppId)
-        )
-        val controlledGame = GameController(gameActor, steamAppName)
-
-        persist(GameActorCreated(steamAppId, steamAppName)) { _ =>
-          gameManagerState = gameManagerState.copy(
-            games = gameManagerState.games.addOne(steamAppId -> controlledGame)
-          )
-
-          gameActor ! CreateGame(steamAppName)
-        }
-      }
-
-    case FinishCSVLoad =>
-      context.unbecome()
-
-    case SaveSnapshotSuccess(metadata) =>
-    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
-
-    case SaveSnapshotFailure(metadata, reason) =>
-    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
-
-    case any: Any =>
-    //      log.info(s"Got unhandled message: $any")
-  }
 
   override def receiveCommand: Receive = {
     case createCommand @ CreateGame(steamAppName) =>
@@ -151,8 +114,36 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       else
         sender() ! GameDeletedResponse(notFoundExceptionCreator(id))
 
-    case InitCSVLoad =>
-      context.become(loadCSVData)
+    case CreateGameFromCSV(GameState(steamAppId, steamAppName)) =>
+      if (gameManagerState.games.contains(steamAppId)) {
+        //        log.info(s"Steam App with Id $steamAppId already exists, skipping creation...")
+      }
+      else {
+        //        log.info(s"Creating game with id $steamAppId")
+
+        val gameActor      = context.actorOf(
+          GameActor.props(steamAppId),
+          createActorName(steamAppId)
+        )
+        val controlledGame = GameController(gameActor, steamAppName)
+
+        persist(GameActorCreated(steamAppId, steamAppName)) { _ =>
+          gameManagerState = gameManagerState.copy(
+            games = gameManagerState.games.addOne(steamAppId -> controlledGame)
+          )
+
+          gameActor ! CreateGame(steamAppName)
+        }
+      }
+
+    case SaveSnapshotSuccess(metadata) =>
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+
+    case SaveSnapshotFailure(metadata, reason) =>
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+
+    case any: Any =>
+    //      log.info(s"Got unhandled message: $any")
 
   }
 
