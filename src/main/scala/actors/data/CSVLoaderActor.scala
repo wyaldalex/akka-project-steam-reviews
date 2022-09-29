@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 
 object CSVLoaderActor {
   // commands
-  case class LoadCSV(file: String)
+  case class LoadCSV(file: String, startPosition: Long = 0)
 
   def props(steamManagerActor: ActorRef)(implicit system: ActorSystem): Props =
     Props(new CSVLoaderActor(steamManagerActor))
@@ -32,9 +32,41 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
   import CSVLoaderActor._
   import SteamManagerActor._
 
-  val csvParserFlow: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
+  val csvParserFlowFromZero: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
     log.info("File read successfully!")
     CsvToMap.toMapAsStrings(StandardCharsets.UTF_8).map(convertCSVData)
+  }
+
+  val csvParserFlowFromPosition: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
+    log.info("File read successfully!")
+    CsvToMap
+      .withHeadersAsStrings(
+        StandardCharsets.UTF_8,
+        "",
+        "app_id",
+        "app_name",
+        "review_id",
+        "language",
+        "review",
+        "timestamp_created",
+        "timestamp_updated",
+        "recommended",
+        "votes_helpful",
+        "votes_funny",
+        "weighted_vote_score",
+        "comment_count",
+        "steam_purchase",
+        "received_for_free",
+        "written_during_early_access",
+        "author.steamid",
+        "author.num_games_owned",
+        "author.num_reviews",
+        "author.playtime_forever",
+        "author.playtime_last_two_weeks",
+        "author.playtime_at_review",
+        "author.last_played"
+      )
+      .map(convertCSVData)
   }
 
   override val supervisorStrategy: SupervisorStrategy =
@@ -43,14 +75,13 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
     }
 
   override def receive: Receive = {
-    case LoadCSV(file) =>
+    case LoadCSV(file, startPosition) =>
       log.info(s"reading file $file")
 
-      FileIO
-        .fromPath(Paths.get(file))
+      FileIO.fromPath(Paths.get(file), 8192, startPosition)
+        .via(CsvParsing.lineScanner(maximumLineLength = Int.MaxValue))
+        .via(if (startPosition == 0) csvParserFlowFromZero else csvParserFlowFromPosition)
         .throttle(500, 3.seconds)
-        .via(CsvParsing.lineScanner())
-        .via(csvParserFlow)
         .runWith(
           Sink.actorRefWithBackpressure(
             ref = steamManagerActor,
@@ -59,6 +90,12 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
             onFailureMessage = CSVLoadFailure
           )
         )
+    //        .runWith(
+    //          Sink.foreach(println)
+    //        )
+    //        .onComplete {
+    //          case Failure(exception) => exception.printStackTrace()
+    //        }
   }
 
   def convertCSVData(row: Map[String, String]): CSVDataToLoad = {
@@ -74,7 +111,7 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
     val playtimeForever      = row("author.playtime_forever").toDoubleOption
     val playtimeLastTwoWeeks = row("author.playtime_last_two_weeks").toDoubleOption
     val playtimeAtReview     = row("author.playtime_at_review").toDoubleOption
-    val lastPlayed           = row("author.last_played").toDoubleOption
+    val lastPlayed           = row.get("author.last_played").flatMap(value => value.toDoubleOption)
 
     val review = ReviewState(
       reviewId,
