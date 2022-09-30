@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>Info</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <file>output.log</file>
+        <immediateFlush>false</immediateFlush>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>output_%d{yyyy-MM-dd}.log</fileNamePattern>
+        </rollingPolicy>
+        <encoder>
+            <pattern>[%date{ISO8601}] [%level] [%logger] [%marker] [%thread] - %msg MDC: {%mdc}%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>32</queueSize>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>Info</level>
+            <onMatch>DENY</onMatch>
+            <onMismatch>ACCEPT</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>[%date{HH:mm:ss.SSS}] [%level] [%logger] [%thread] - %msg MDC: {%mdc}%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="akka.event.EventStream" level="info"/>
+    <logger name="akka.persistence.Persistence" level="info"/>
+    <logger name="akka.stream.alpakka.cassandra.scaladsl.CassandraSession" level="info"/>
+    <logger name="akka.persistence.cassandra.snapshot.CassandraSnapshotStore" level="info"/>
+    <logger name="akka.persistence.PersistencePlugin" level="info"/>
+    <logger name="akka.io.TcpListener" level="info"/>
+    <logger name="io.netty.buffer.AbstractByteBuf" level="info"/>
+    <logger name="io.netty.util.internal.logging.InternalLoggerFactory" level="info"/>
+    <logger name="io.netty.util.internal.InternalThreadLocalMap" level="info"/>
+    <logger name="io.netty.channel.nio.NioEventLoop" level="info"/>
+    <logger name="io.netty.channel.MultithreadEventLoopGroup" level="info"/>
+    <logger name="io.netty.channel.DefaultChannelId" level="info"/>
+    <logger name="io.netty.util.internal.PlatformDependent0" level="info"/>
+    <logger name="io.netty.util.internal.PlatformDependent" level="info"/>
+    <logger name="io.netty.util.internal.CleanerJava6" level="info"/>
+    <logger name="io.netty.util.ResourceLeakDetector" level="info"/>
+    <logger name="io.netty.buffer.PooledByteBufAllocator" level="info"/>
+    <logger name="io.netty.buffer.ByteBufUtil" level="info"/>
+    <logger name="io.netty.util.NetUtil" level="info"/>
+    <logger name="io.netty.util.Recycler" level="info"/>
+    <logger name="io.netty.util.ResourceLeakDetectorFactory" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.context.EventBus" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.metrics.DropwizardMetricsFactory" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.session.DefaultSession" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.channel.InFlightHandler" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.channel.HeartbeatHandler" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.pool.ChannelPool" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.util.concurrent.Reconnection" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.util.Reflection" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.channel.ProtocolInitHandler" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.control.ControlConnection" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.metadata.NodeStateManager" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.metadata.MetadataManager" level="info"/>
+    <logger name="com.datastax.oss.driver.internal.core.connection.ExponentialReconnectionPolicy" level="info"/>
+    <root level="*">
+        <appender-ref ref="STDOUT"/>
+
+        <appender-ref ref="ASYNC"/>
+    </root>
+</configuration>

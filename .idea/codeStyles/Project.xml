@@ -2,6 +2,10 @@
   <code_scheme name="Project" version="173">
     <option name="RIGHT_MARGIN" value="128" />
     <option name="SOFT_MARGINS" value="128" />
+    <CsvCodeStyleSettings>
+      <option name="TABULARIZE" value="false" />
+      <option name="WHITE_SPACES_OUTSIDE_QUOTES" value="false" />
+    </CsvCodeStyleSettings>
     <ScalaCodeStyleSettings>
       <option name="addFullQualifiedImports" value="false" />
       <option name="doNotChangeLocalImportsOnOptimize" value="false" />

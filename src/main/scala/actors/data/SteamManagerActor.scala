@@ -49,6 +49,10 @@ class SteamManagerActor(
   import SteamManagerActor._
 
   override def receive: Receive = {
+    case InitCSVLoadToManagers =>
+      log.info("Initialized CSV Data load.")
+      sender() ! Ack
+
     case CSVDataToLoad(review, user, game) =>
       gameManagerActor ! CreateGameFromCSV(game)
       userManagerActor ! CreateUserFromCSV(user)

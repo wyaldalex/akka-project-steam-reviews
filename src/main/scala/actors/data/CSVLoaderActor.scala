@@ -6,9 +6,7 @@ import actors.review.ReviewActor.ReviewState
 import actors.user.UserActor.UserState
 
 import akka.NotUsed
-import akka.actor.SupervisorStrategy.Resume
-import akka.actor.{ Actor, ActorLogging, ActorRef, ActorSystem, OneForOneStrategy, Props, SupervisorStrategy }
-import akka.stream.alpakka.csv.MalformedCsvException
+import akka.actor.{ Actor, ActorLogging, ActorRef, ActorSystem, Props }
 import akka.stream.alpakka.csv.scaladsl.{ CsvParsing, CsvToMap }
 import akka.stream.scaladsl.{ FileIO, Flow, Sink }
 import akka.util.ByteString
@@ -69,11 +67,6 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
       .map(convertCSVData)
   }
 
-  override val supervisorStrategy: SupervisorStrategy =
-    OneForOneStrategy(maxNrOfRetries = 10) {
-      case _: MalformedCsvException ⇒ Resume
-    }
-
   override def receive: Receive = {
     case LoadCSV(file, startPosition) =>
       log.info(s"reading file $file")
@@ -90,66 +83,75 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
             onFailureMessage = CSVLoadFailure
           )
         )
-    //        .runWith(
-    //          Sink.foreach(println)
-    //        )
-    //        .onComplete {
-    //          case Failure(exception) => exception.printStackTrace()
-    //        }
   }
 
   def convertCSVData(row: Map[String, String]): CSVDataToLoad = {
-    val reviewId             = longToBigInt(row("review_id").toLong)
-    val steamAppId           = longToBigInt(row("app_id").toLong)
-    val authorId             = longToBigInt(row("author.steamid").toLong)
-    val timestampCreated     = row.get("timestamp_created").flatMap(value => optionLongToOptionBigInt(value.toLongOption))
-    val timestampUpdated     = row.get("timestamp_updated").flatMap(value => optionLongToOptionBigInt(value.toLongOption))
-    val votesHelpful         = optionLongToOptionBigInt(row("votes_helpful").toLongOption)
-    val votesFunny           = optionLongToOptionBigInt(row("votes_funny").toLongOption)
-    val weightedVoteScore    = row("weighted_vote_score").toDoubleOption
-    val commentCount         = optionLongToOptionBigInt(row("comment_count").toLongOption)
-    val playtimeForever      = row("author.playtime_forever").toDoubleOption
-    val playtimeLastTwoWeeks = row("author.playtime_last_two_weeks").toDoubleOption
-    val playtimeAtReview     = row("author.playtime_at_review").toDoubleOption
-    val lastPlayed           = row.get("author.last_played").flatMap(value => value.toDoubleOption)
+    val reviewId                 = longToBigInt(row("review_id").toLong)
+    val steamAppId               = longToBigInt(row("app_id").toLong)
+    val authorId                 = longToBigInt(row("author.steamid").toLong)
+    val region                   = row.get("language")
+    val reviewValue              = row.get("review")
+    val timestampCreated         = row.get("timestamp_created").flatMap(value => optionLongToOptionBigInt(value.toLongOption))
+    val timestampUpdated         = row.get("timestamp_updated").flatMap(value => optionLongToOptionBigInt(value.toLongOption))
+    val recommended              = row("recommended").toBooleanOption
+    val votesHelpful             = optionLongToOptionBigInt(row("votes_helpful").toLongOption)
+    val votesFunny               = optionLongToOptionBigInt(row("votes_funny").toLongOption)
+    val weightedVoteScore        = row("weighted_vote_score").toDoubleOption
+    val commentCount             = optionLongToOptionBigInt(row("comment_count").toLongOption)
+    val steamPurchase            = row("steam_purchase").toBooleanOption
+    val receivedForFree          = row("received_for_free").toBooleanOption
+    val writtenDuringEarlyAccess = row("written_during_early_access").toBooleanOption
+    val playtimeForever          = row("author.playtime_forever").toDoubleOption
+    val playtimeLastTwoWeeks     = row("author.playtime_last_two_weeks").toDoubleOption
+    val playtimeAtReview         = row("author.playtime_at_review").toDoubleOption
+    val lastPlayed               = row.get("author.last_played").flatMap(value => value.toDoubleOption)
 
     val review = ReviewState(
       reviewId,
       steamAppId,
       authorId,
-      row.get("language"),
-      row.get("review"),
+      region,
+      reviewValue,
       timestampCreated,
       timestampUpdated,
-      row("recommended").toBooleanOption,
+      recommended,
       votesHelpful,
       votesFunny,
       weightedVoteScore,
       commentCount,
-      row("steam_purchase").toBooleanOption,
-      row("received_for_free").toBooleanOption,
-      row("written_during_early_access").toBooleanOption,
+      steamPurchase,
+      receivedForFree,
+      writtenDuringEarlyAccess,
       playtimeForever,
       playtimeLastTwoWeeks,
       playtimeAtReview,
       lastPlayed
     )
-    val user   = UserState(
-      userId = row("author.steamid").toLong,
-      name = Some(s"user${row("author.steamid")}"),
-      numGamesOwned = row("author.num_games_owned").toLongOption,
-      numReviews = row("author.num_reviews").toLongOption
+
+    val name          = Some(s"user$authorId")
+    val numGamesOwned = row("author.num_games_owned").toLongOption
+    val numReviews    = row("author.num_reviews").toLongOption
+
+    val user = UserState(
+      authorId,
+      name,
+      numGamesOwned,
+      numReviews
     )
-    val game   = GameState(
-      steamAppId = row("app_id").toLong,
-      steamAppName = row("app_name")
+
+    val steamAppName = row("app_name")
+
+    val game = GameState(
+      steamAppId,
+      steamAppName
     )
 
     CSVDataToLoad(
-      review = review,
-      user = user,
-      game = game
+      review,
+      user,
+      game
     )
+    
   }
 
 }

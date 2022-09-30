@@ -115,12 +115,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
         sender() ! GameDeletedResponse(notFoundExceptionCreator(id))
 
     case CreateGameFromCSV(GameState(steamAppId, steamAppName)) =>
-      if (gameManagerState.games.contains(steamAppId)) {
-        //        log.info(s"Steam App with Id $steamAppId already exists, skipping creation...")
-      }
-      else {
-        //        log.info(s"Creating game with id $steamAppId")
-
+      if (!gameManagerState.games.contains(steamAppId)) {
         val gameActor      = context.actorOf(
           GameActor.props(steamAppId),
           createActorName(steamAppId)
@@ -137,10 +132,10 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       }
 
     case SaveSnapshotSuccess(metadata) =>
-    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
 
     case SaveSnapshotFailure(metadata, reason) =>
-    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
 
     case any: Any =>
     //      log.info(s"Got unhandled message: $any")
