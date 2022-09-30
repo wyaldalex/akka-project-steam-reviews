@@ -53,6 +53,7 @@ class SteamManagerActor(
       sender() ! Ack
 
     case CSVDataToLoad(review, user, game) =>
+      log.info(s"Received CSV Data for review ${review.reviewId}")
       gameManagerActor ! CreateGameFromCSV(game)
       userManagerActor ! CreateUserFromCSV(user)
       reviewManagerActor ! CreateReviewFromCSV(review)

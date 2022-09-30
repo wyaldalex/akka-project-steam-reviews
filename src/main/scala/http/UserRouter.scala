@@ -13,7 +13,7 @@ import io.circe.generic.auto._
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
 
-case class UserRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
+case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
 
   import actors.user.UserActor._
 
@@ -31,16 +31,16 @@ case class UserRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
   }
 
   private def createUserAction(createUser: CreateUserRequest): Future[UserCreatedResponse] =
-    (gameManagerActor ? createUser.toCommand).mapTo[UserCreatedResponse]
+    (userManagerActor ? createUser.toCommand).mapTo[UserCreatedResponse]
 
   private def updateNameAction(id: BigInt, updateUser: UpdateUserRequest): Future[UserUpdatedResponse] =
-    (gameManagerActor ? updateUser.toCommand(id)).mapTo[UserUpdatedResponse]
+    (userManagerActor ? updateUser.toCommand(id)).mapTo[UserUpdatedResponse]
 
   private def getUserInfoAction(id: BigInt): Future[GetUserInfoResponse] =
-    (gameManagerActor ? GetUserInfo(id)).mapTo[GetUserInfoResponse]
+    (userManagerActor ? GetUserInfo(id)).mapTo[GetUserInfoResponse]
 
   private def deleteUserAction(id: BigInt): Future[UserDeletedResponse] =
-    (gameManagerActor ? DeleteUser(id)).mapTo[UserDeletedResponse]
+    (userManagerActor ? DeleteUser(id)).mapTo[UserDeletedResponse]
 
 
   val routes: Route =
