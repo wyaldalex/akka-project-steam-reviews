@@ -39,8 +39,8 @@ ThisBuild / libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % logbackVersion,
   "org.scalatest" %% "scalatest" % "3.2.13",
   "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.8.0",
-  "ch.qos.logback" % "logback-classic" % "1.3.1",
-  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
+  // logback
+  "ch.qos.logback" % "logback-classic" % "1.3.1"
 )
 
 lazy val root = (project in file("."))

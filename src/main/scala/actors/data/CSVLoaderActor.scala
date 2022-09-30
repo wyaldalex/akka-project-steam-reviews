@@ -30,61 +30,6 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
   import CSVLoaderActor._
   import SteamManagerActor._
 
-  val csvParserFlowFromZero: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
-    log.info("File read successfully!")
-    CsvToMap.toMapAsStrings(StandardCharsets.UTF_8).map(convertCSVData)
-  }
-
-  val csvParserFlowFromPosition: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
-    log.info("File read successfully!")
-    CsvToMap
-      .withHeadersAsStrings(
-        StandardCharsets.UTF_8,
-        "",
-        "app_id",
-        "app_name",
-        "review_id",
-        "language",
-        "review",
-        "timestamp_created",
-        "timestamp_updated",
-        "recommended",
-        "votes_helpful",
-        "votes_funny",
-        "weighted_vote_score",
-        "comment_count",
-        "steam_purchase",
-        "received_for_free",
-        "written_during_early_access",
-        "author.steamid",
-        "author.num_games_owned",
-        "author.num_reviews",
-        "author.playtime_forever",
-        "author.playtime_last_two_weeks",
-        "author.playtime_at_review",
-        "author.last_played"
-      )
-      .map(convertCSVData)
-  }
-
-  override def receive: Receive = {
-    case LoadCSV(file, startPosition) =>
-      log.info(s"reading file $file")
-
-      FileIO.fromPath(Paths.get(file), 8192, startPosition)
-        .via(CsvParsing.lineScanner(maximumLineLength = Int.MaxValue))
-        .via(if (startPosition == 0) csvParserFlowFromZero else csvParserFlowFromPosition)
-        .throttle(500, 3.seconds)
-        .runWith(
-          Sink.actorRefWithBackpressure(
-            ref = steamManagerActor,
-            onInitMessage = InitCSVLoadToManagers,
-            onCompleteMessage = FinishCSVLoadToManagers,
-            onFailureMessage = CSVLoadFailure
-          )
-        )
-  }
-
   def convertCSVData(row: Map[String, String]): CSVDataToLoad = {
     val reviewId                 = longToBigInt(row("review_id").toLong)
     val steamAppId               = longToBigInt(row("app_id").toLong)
@@ -151,7 +96,66 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
       user,
       game
     )
-    
+
+  }
+
+  val csvParserFlowFromZero: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
+    CsvToMap.toMapAsStrings(StandardCharsets.UTF_8).map(convertCSVData)
+  }
+
+  val csvParserFlowFromPosition: Flow[List[ByteString], CSVDataToLoad, NotUsed] = {
+    CsvToMap
+      .withHeadersAsStrings(
+        StandardCharsets.UTF_8,
+        "",
+        "app_id",
+        "app_name",
+        "review_id",
+        "language",
+        "review",
+        "timestamp_created",
+        "timestamp_updated",
+        "recommended",
+        "votes_helpful",
+        "votes_funny",
+        "weighted_vote_score",
+        "comment_count",
+        "steam_purchase",
+        "received_for_free",
+        "written_during_early_access",
+        "author.steamid",
+        "author.num_games_owned",
+        "author.num_reviews",
+        "author.playtime_forever",
+        "author.playtime_last_two_weeks",
+        "author.playtime_at_review",
+        "author.last_played"
+      )
+      .map(convertCSVData)
+  }
+
+  def csvTransformerToDataEntities(startPosition: Long): Flow[List[ByteString], CSVDataToLoad, NotUsed] =
+    if (startPosition == 0)
+      csvParserFlowFromZero
+    else
+      csvParserFlowFromPosition
+
+  override def receive: Receive = {
+    case LoadCSV(file, startPosition) =>
+      log.info(s"reading file $file")
+
+      FileIO.fromPath(Paths.get(file), 8192, startPosition)
+        .via(CsvParsing.lineScanner(maximumLineLength = Int.MaxValue))
+        .via(csvTransformerToDataEntities(startPosition))
+        .throttle(1000, 3.seconds)
+        .runWith(
+          Sink.actorRefWithBackpressure(
+            ref = steamManagerActor,
+            onInitMessage = InitCSVLoadToManagers,
+            onCompleteMessage = FinishCSVLoadToManagers,
+            onFailureMessage = CSVLoadFailure
+          )
+        )
   }
 
 }

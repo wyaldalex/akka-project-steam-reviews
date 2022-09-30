@@ -1,7 +1,6 @@
 package dev.galre.josue.akkaProject
 package actors.data
 
-import actors.FinishCSVLoad
 import actors.game.GameActor.GameState
 import actors.game.GameManagerActor.CreateGameFromCSV
 import actors.review.ReviewActor.ReviewState
@@ -60,9 +59,6 @@ class SteamManagerActor(
       sender() ! Ack
 
     case FinishCSVLoadToManagers =>
-      gameManagerActor ! FinishCSVLoad
-      userManagerActor ! FinishCSVLoad
-      reviewManagerActor ! FinishCSVLoad
       log.info("Finished successfully CSV Load")
 
     case CSVLoadFailure(exception) =>
