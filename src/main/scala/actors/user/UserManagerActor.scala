@@ -5,7 +5,7 @@ import actors.UserController
 import actors.user.UserActor.UserState
 
 import akka.actor.{ ActorLogging, Props }
-import akka.persistence.{ PersistentActor, SaveSnapshotFailure, SaveSnapshotSuccess }
+import akka.persistence._
 import akka.util.Timeout
 
 import scala.collection.mutable
@@ -20,6 +20,8 @@ object UserManagerActor {
     var userCount: BigInt = BigInt(0),
     users:         mutable.AnyRefMap[BigInt, UserController]
   )
+
+  val userManagerSnapshotInterval = 1000
 
   // commands
   case class CreateUserFromCSV(game: UserState)
@@ -50,6 +52,10 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"An user with the id $id couldn't be found"))
+
+  def tryToSaveSnapshot(): Unit =
+    if (lastSequenceNr % userManagerSnapshotInterval == 0 && lastSequenceNr != 0)
+      saveSnapshot(userManagerState)
 
   override def receiveCommand: Receive = {
     case createCommand @ CreateUser(_, _, _) =>
@@ -142,6 +148,12 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
     case UserActorDeleted(id) =>
       userManagerState.users(id).isDisabled = true
+
+    case SnapshotOffer(_, state: UserManager) =>
+      userManagerState = state
+
+    case RecoveryCompleted =>
+      log.info("Recovery completed successfully.")
 
   }
 }

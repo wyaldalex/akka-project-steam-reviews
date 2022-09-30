@@ -5,7 +5,7 @@ import actors.ReviewController
 import actors.review.ReviewActor.ReviewState
 
 import akka.actor.{ ActorLogging, Props }
-import akka.persistence.{ PersistentActor, SaveSnapshotFailure, SaveSnapshotSuccess }
+import akka.persistence._
 import akka.util.Timeout
 
 import scala.collection.mutable
@@ -20,6 +20,8 @@ object ReviewManagerActor {
     var reviewCount: BigInt = BigInt(0),
     reviews:         mutable.AnyRefMap[BigInt, ReviewController]
   )
+
+  val reviewManagerSnapshotInterval = 1000
 
   // commands
   case class CreateReviewFromCSV(review: ReviewState)
@@ -51,6 +53,10 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"A review with the id $id couldn't be found"))
 
+  def tryToSaveSnapshot(): Unit =
+    if (lastSequenceNr % reviewManagerSnapshotInterval == 0 && lastSequenceNr != 0)
+      saveSnapshot(reviewManagerState)
+
   override def receiveCommand: Receive = {
     case createCommand: CreateReview =>
       val steamReviewId    = reviewManagerState.reviewCount
@@ -66,6 +72,8 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           reviewCount = reviewManagerState.reviewCount + 1,
           reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
         )
+
+        tryToSaveSnapshot()
 
         reviewActor.forward(createCommand)
       }
@@ -88,6 +96,8 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           reviewManagerState.reviews(id).isDisabled = true
           context.stop(reviewManagerState.reviews(id).actor)
 
+          tryToSaveSnapshot()
+
           sender() ! ReviewDeletedResponse(Success(true))
         }
       else
@@ -109,6 +119,8 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           reviewManagerState = reviewManagerState.copy(
             reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
           )
+
+          tryToSaveSnapshot()
 
           reviewActor ! CreateReview(
             steamAppId = review.steamAppId,
@@ -164,6 +176,12 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
 
     case ReviewActorDeleted(id) =>
       reviewManagerState.reviews(id).isDisabled = true
+
+    case SnapshotOffer(_, state: ReviewManager) =>
+      reviewManagerState = state
+
+    case RecoveryCompleted =>
+      log.info("Recovery completed successfully.")
 
   }
 }

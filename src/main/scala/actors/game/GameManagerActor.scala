@@ -6,7 +6,7 @@ import actors.game.GameActor.GameState
 
 import akka.actor.{ ActorLogging, Props }
 import akka.pattern.{ ask, pipe }
-import akka.persistence.{ PersistentActor, SaveSnapshotFailure, SaveSnapshotSuccess }
+import akka.persistence._
 import akka.util.Timeout
 
 import scala.collection.mutable
@@ -20,6 +20,8 @@ object GameManagerActor {
     var gameCount: BigInt = BigInt(0),
     games:         mutable.AnyRefMap[BigInt, GameController]
   )
+
+  val gameManagerSnapshotInterval = 10
 
   // commands
   case class CreateGameFromCSV(game: GameState)
@@ -56,6 +58,11 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"A game with the id $id couldn't be found"))
 
+  def tryToSaveSnapshot(): Unit =
+    if (lastSequenceNr % gameManagerSnapshotInterval == 0 && lastSequenceNr != 0)
+      saveSnapshot(gameManagerState)
+
+
   override def receiveCommand: Receive = {
     case createCommand @ CreateGame(steamAppName) =>
       if (gameAlreadyExists(steamAppName))
@@ -75,6 +82,8 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
             games = gameManagerState.games.addOne(steamGameId -> controlledGame)
           )
 
+          tryToSaveSnapshot()
+
           gameActor.forward(createCommand)
         }
       }
@@ -92,6 +101,8 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
             case Success(_) =>
               persist(GameActorUpdated(id, newName)) { _ =>
                 gameManagerState.games(id).name = newName
+
+                tryToSaveSnapshot()
               }
 
             case _ =>
@@ -108,6 +119,8 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
         persist(GameActorDeleted(id)) { _ =>
           gameManagerState.games(id).isDisabled = true
           context.stop(gameManagerState.games(id).actor)
+
+          tryToSaveSnapshot()
 
           sender() ! GameDeletedResponse(Success(true))
         }
@@ -165,6 +178,12 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
     case GameActorUpdated(id, name) =>
       gameManagerState.games(id).name = name
+
+    case SnapshotOffer(_, state: GameManager) =>
+      gameManagerState = state
+
+    case RecoveryCompleted =>
+      log.info("Recovery completed successfully.")
   }
 
 }
