@@ -28,8 +28,9 @@ object SteamManagerActor {
   )
 
   def props(
-    gameManagerActor: ActorRef,
-    userManagerActor: ActorRef, reviewManagerActor: ActorRef
+    gameManagerActor:   ActorRef,
+    userManagerActor:   ActorRef,
+    reviewManagerActor: ActorRef
   )
     (implicit timeout: Timeout): Props =
     Props(

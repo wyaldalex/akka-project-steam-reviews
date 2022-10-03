@@ -48,7 +48,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
   def isReviewAvailable(id: BigInt): Boolean =
     reviewManagerState.reviews.contains(id) && !reviewManagerState.reviews(id).isDisabled
 
-  def createActorName(steamReviewId: BigInt): String = s"review-$steamReviewId"
+  def createActorName(steamReviewId: BigInt): String = s"steam-review-$steamReviewId"
 
   def notFoundExceptionCreator[T](id: BigInt): Try[T] =
     Failure(NotFoundException(s"A review with the id $id couldn't be found"))
@@ -104,7 +104,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
         sender() ! ReviewDeletedResponse(notFoundExceptionCreator(id))
 
     case CreateReviewFromCSV(review) =>
-      val steamReviewId = review.reviewId
+      val steamReviewId = reviewManagerState.reviewCount
       if (!reviewManagerState.reviews.contains(steamReviewId)) {
         val reviewActor      = context.actorOf(
           ReviewActor.props(steamReviewId),
@@ -114,7 +114,8 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
 
         persist(ReviewActorCreated(steamReviewId)) { _ =>
           reviewManagerState = reviewManagerState.copy(
-            reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
+            reviewManagerState.reviewCount + 1,
+            reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
           )
 
           tryToSaveSnapshot()
@@ -174,7 +175,8 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
     case ReviewActorDeleted(id) =>
       reviewManagerState.reviews(id).isDisabled = true
 
-    case SnapshotOffer(_, state: ReviewManager) =>
+    case SnapshotOffer(metadata, state: ReviewManager) =>
+      log.info(s"Recovered snapshot ${metadata.persistenceId} - ${metadata.timestamp}")
       reviewManagerState = state
 
     case RecoveryCompleted =>

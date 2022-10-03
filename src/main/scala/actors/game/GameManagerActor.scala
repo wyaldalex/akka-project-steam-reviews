@@ -179,7 +179,8 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
     case GameActorUpdated(id, name) =>
       gameManagerState.games(id).name = name
 
-    case SnapshotOffer(_, state: GameManager) =>
+    case SnapshotOffer(metadata, state: GameManager) =>
+      log.info(s"Recovered snapshot ${metadata.persistenceId} - ${metadata.timestamp}")
       gameManagerState = state
 
     case RecoveryCompleted =>
