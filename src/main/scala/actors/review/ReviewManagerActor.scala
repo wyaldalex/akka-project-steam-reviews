@@ -103,9 +103,6 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       else
         sender() ! ReviewDeletedResponse(notFoundExceptionCreator(id))
 
-    case any: Any =>
-      log.info(s"Got unhandled message: $any")
-
     case CreateReviewFromCSV(review) =>
       val steamReviewId = review.reviewId
       if (!reviewManagerState.reviews.contains(steamReviewId)) {

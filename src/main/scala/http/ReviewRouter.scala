@@ -160,11 +160,11 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
             delete {
               onSuccess(deleteReviewAction(steamAppId)) {
                 case ReviewDeletedResponse(Success(_)) =>
-                  complete(Response(
-                    statusCode = StatusCodes
-                      .OK
-                      .intValue, message = Some("ReviewState was deleted successfully.")
-                  )
+                  complete(
+                    Response(
+                      statusCode = StatusCodes.OK.intValue,
+                      message = Some("ReviewState was deleted successfully.")
+                    )
                   )
 
                 case ReviewDeletedResponse(Failure(exception)) =>

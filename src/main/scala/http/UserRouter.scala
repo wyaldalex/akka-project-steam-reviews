@@ -86,11 +86,11 @@ case class UserRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
             delete {
               onSuccess(deleteUserAction(steamUserId)) {
                 case UserDeletedResponse(Success(_)) =>
-                  complete(Response(
-                    statusCode = StatusCodes
-                      .OK
-                      .intValue, message = Some("UserState was deleted successfully.")
-                  )
+                  complete(
+                    Response(
+                      statusCode = StatusCodes.OK.intValue,
+                      message = Some("UserState was deleted successfully.")
+                    )
                   )
 
                 case UserDeletedResponse(Failure(exception)) =>

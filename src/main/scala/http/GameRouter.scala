@@ -82,7 +82,12 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
             delete {
               onSuccess(deleteGameAction(steamAppId)) {
                 case GameDeletedResponse(Success(_)) =>
-                  complete(Response(statusCode = StatusCodes.OK.intValue, message = Some("Game was deleted successfully.")))
+                  complete(
+                    Response(
+                      statusCode = StatusCodes.OK.intValue,
+                      message = Some("Game was deleted successfully.")
+                    )
+                  )
 
                 case GameDeletedResponse(Failure(exception)) =>
                   throw exception
