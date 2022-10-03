@@ -17,13 +17,13 @@ object HttpApp {
   def main(args: Array[String]): Unit = {
     implicit val system    : ActorSystem      = ActorSystem("AkkaProjectSystem")
     implicit val dispatcher: ExecutionContext = system.dispatcher
-    implicit val timeout   : Timeout          = Timeout(5.seconds)
+    implicit val timeout   : Timeout          = Timeout(20.seconds)
 
     val (gameManagerActor, userManagerActor, reviewManagerActor) = initAkkaActors()
 
     val routes = MainRouter(gameManagerActor, userManagerActor, reviewManagerActor)
 
-    val boundServer = Http().newServerAt("localhost", 8080).bind(routes)
+    val boundServer = Http().newServerAt("0.0.0.0", 8080).bind(routes)
 
     boundServer.onComplete {
       case Success(binding) =>
