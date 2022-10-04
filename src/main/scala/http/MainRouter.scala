@@ -12,6 +12,7 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
 import java.io.FileNotFoundException
+import scala.concurrent.ExecutionContext
 
 object MainRouter {
 
@@ -61,14 +62,14 @@ object MainRouter {
     userManagerActor:   ActorRef,
     reviewManagerActor: ActorRef
   )
-    (implicit timeout: Timeout): Route = {
+    (implicit timeout: Timeout, executionContext: ExecutionContext): Route = {
     pathPrefix("api") {
       concat(
         handleExceptions(exceptionHandler) {
           concat(
             GameRouter(gameManagerActor).routes,
             UserRouter(userManagerActor).routes,
-            ReviewRouter(reviewManagerActor).routes
+            ReviewRouter(reviewManagerActor, userManagerActor, gameManagerActor).routes
           )
         },
         SwaggerDocService.routes

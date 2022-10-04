@@ -1,6 +1,9 @@
 package dev.galre.josue.akkaProject
 package http
 
+import actors.game.GameActor.{ GetGameInfo, GetGameInfoResponse }
+import actors.user.UserActor.{ GetUserInfo, GetUserInfoResponse }
+
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
@@ -10,10 +13,15 @@ import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
+case class ReviewRouter(
+  reviewManagerActor: ActorRef,
+  userManagerActor:   ActorRef,
+  gameManagerActor:   ActorRef
+)
+  (implicit timeout: Timeout, executionContext: ExecutionContext) extends Directives {
 
   import actors.review.ReviewActor._
 
@@ -118,6 +126,52 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
   private def deleteReviewAction(id: Long): Future[ReviewDeletedResponse] =
     (reviewManagerActor ? DeleteReview(id)).mapTo[ReviewDeletedResponse]
 
+  private def checkIfAuthorAndGameAreValid(steamAppId: Long, authorId: Long)(routeIfValid: Route): Route = {
+    val userInfoResponse = (gameManagerActor ? GetGameInfo(steamAppId)).mapTo[GetGameInfoResponse]
+    val gameInfoResponse = (userManagerActor ? GetUserInfo(authorId)).mapTo[GetUserInfoResponse]
+
+    onComplete {
+      for {
+        user <- userInfoResponse
+        game <- gameInfoResponse
+      } yield {
+        (user, game) match {
+          case (GetGameInfoResponse(maybeGame), GetUserInfoResponse(maybeAccount)) =>
+
+            (maybeAccount, maybeGame) match {
+              case (Success(_), Success(_)) =>
+                Success(true)
+
+              case (Failure(_), _) =>
+                Failure(
+                  new IllegalArgumentException("The authorId entered is invalid, please select a valid user.")
+                )
+
+              case (_, Failure(_)) =>
+                Failure(
+                  new IllegalArgumentException("The steamAppId is invalid, please select a valid game.")
+                )
+
+              case (_, _) =>
+                Failure(
+                  new IllegalArgumentException("Both authorId and steamAppId are invalid, please check and try again.")
+                )
+            }
+        }
+      }
+    } {
+      case Success(bothAreValid) => bothAreValid match {
+        case Success(_) =>
+          routeIfValid
+
+        case Failure(exception) =>
+          throw exception
+      }
+
+      case Failure(exception) =>
+        throw exception
+    }
+  }
 
   val routes: Route =
     pathPrefix("reviews") {
@@ -126,14 +180,16 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
 
           post {
             entity(as[CreateReviewRequest]) { review =>
-              onSuccess(createReviewAction(review)) {
-                case ReviewCreatedResponse(Success(steamAppId)) =>
-                  respondWithHeader(Location(s"/reviews/$steamAppId")) {
-                    complete(StatusCodes.Created)
-                  }
+              checkIfAuthorAndGameAreValid(review.steamAppId, review.authorId) {
+                onSuccess(createReviewAction(review)) {
+                  case ReviewCreatedResponse(Success(steamAppId)) =>
+                    respondWithHeader(Location(s"/reviews/$steamAppId")) {
+                      complete(StatusCodes.Created)
+                    }
 
-                case ReviewCreatedResponse(Failure(exception)) =>
-                  throw exception
+                  case ReviewCreatedResponse(Failure(exception)) =>
+                    throw exception
+                }
               }
             }
           }

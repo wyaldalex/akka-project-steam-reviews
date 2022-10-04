@@ -30,6 +30,8 @@ object UserManagerActor {
   // events
   case class UserActorCreated(id: Long) extends CborSerializable
 
+  case class UserActorCreatedFromCSV(id: Long) extends CborSerializable
+
   case class UserActorDeleted(id: Long) extends CborSerializable
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new UserManagerActor())
@@ -108,10 +110,9 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
         )
         val controlledUser = UserController(userActor)
 
-        persist(UserActorCreated(userId)) { _ =>
+        persist(UserActorCreatedFromCSV(userId)) { _ =>
           userManagerState = userManagerState.copy(
-            userManagerState.userCount + 1,
-            userManagerState.users.addOne(userId -> controlledUser)
+            users = userManagerState.users.addOne(userId -> controlledUser)
           )
 
           userActor ! CreateUser(name.getOrElse(""), numGamesOwned, numReviews)
@@ -129,22 +130,33 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
   }
 
+  def createUserFromRecover(steamUserId: Long): UserController = {
+    val userActorName = createActorName(steamUserId)
+    val userActor     = context.child(userActorName)
+      .getOrElse(
+        context.actorOf(
+          UserActor.props(steamUserId),
+          userActorName
+        )
+      )
+
+    UserController(userActor)
+  }
+
   override def receiveRecover: Receive = {
     case UserActorCreated(steamUserId) =>
-      val userActorName = createActorName(steamUserId)
-      val userActor     = context.child(userActorName)
-        .getOrElse(
-          context.actorOf(
-            UserActor.props(steamUserId),
-            userActorName
-          )
-        )
-
-      val controlledUser = UserController(userActor)
+      val controlledUser = createUserFromRecover(steamUserId)
 
       userManagerState = userManagerState.copy(
         userCount = steamUserId + 1,
         userManagerState.users.addOne(steamUserId -> controlledUser)
+      )
+
+    case UserActorCreatedFromCSV(steamUserId) =>
+      val controlledUser = createUserFromRecover(steamUserId)
+
+      userManagerState = userManagerState.copy(
+        users = userManagerState.users.addOne(steamUserId -> controlledUser)
       )
 
     case UserActorDeleted(id) =>
