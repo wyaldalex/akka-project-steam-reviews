@@ -3,7 +3,7 @@ package actors.review
 
 import util.CborSerializable
 
-import akka.actor.Props
+import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
@@ -12,48 +12,29 @@ import scala.util.{ Success, Try }
 object ReviewActor {
   // state
   case class ReviewState(
-    @JsonDeserialize(contentAs = classOf[Long]) reviewId:                 Long,
-    @JsonDeserialize(contentAs = classOf[Long]) steamAppId:               Long = 0,
-    @JsonDeserialize(contentAs = classOf[Long]) authorId:                 Long = 0,
-    region:                                                               Option[String] = None,
-    review:                                                               Option[String] = None,
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) timestampCreated: Option[Long] = None,
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) timestampUpdated: Option[Long] = None,
-    recommended:                                                          Option[Boolean] = None,
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) votesHelpful:     Option[Long] = None,
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) votesFunny:       Option[Long] = None,
-    weightedVoteScore:                                                    Option[Double] = None,
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) commentCount:     Option[Long] = None,
-    steamPurchase:                                                        Option[Boolean] = None,
-    receivedForFree:                                                      Option[Boolean] = None,
-    writtenDuringEarlyAccess:                                             Option[Boolean] = None,
-    authorPlaytimeForever:                                                Option[Double] = None,
-    authorPlaytimeLastTwoWeeks:                                           Option[Double] = None,
-    authorPlaytimeAtReview:                                               Option[Double] = None,
-    authorLastPlayed:                                                     Option[Double] = None,
+    @JsonDeserialize(contentAs = classOf[Long]) reviewId:         Long,
+    @JsonDeserialize(contentAs = classOf[Long]) steamAppId:       Long = 0,
+    @JsonDeserialize(contentAs = classOf[Long]) authorId:         Long = 0,
+    region:                                                       Option[String] = None,
+    review:                                                       Option[String] = None,
+    @JsonDeserialize(contentAs = classOf[Long]) timestampCreated: Option[Long] = None,
+    @JsonDeserialize(contentAs = classOf[Long]) timestampUpdated: Option[Long] = None,
+    recommended:                                                  Option[Boolean] = None,
+    @JsonDeserialize(contentAs = classOf[Long]) votesHelpful:     Option[Long] = None,
+    @JsonDeserialize(contentAs = classOf[Long]) votesFunny:       Option[Long] = None,
+    weightedVoteScore:                                            Option[Double] = None,
+    @JsonDeserialize(contentAs = classOf[Long]) commentCount:     Option[Long] = None,
+    steamPurchase:                                                Option[Boolean] = None,
+    receivedForFree:                                              Option[Boolean] = None,
+    writtenDuringEarlyAccess:                                     Option[Boolean] = None,
+    authorPlaytimeForever:                                        Option[Double] = None,
+    authorPlaytimeLastTwoWeeks:                                   Option[Double] = None,
+    authorPlaytimeAtReview:                                       Option[Double] = None,
+    authorLastPlayed:                                             Option[Double] = None,
   ) extends CborSerializable
 
   // commands
-  case class CreateReview(
-    @JsonDeserialize(contentAs = classOf[Long]) steamAppId:           Long,
-    @JsonDeserialize(contentAs = classOf[Long]) authorId:             Long,
-    region:                                                           Option[String],
-    timestampCreated:                                                 Long = System.currentTimeMillis(),
-    timestampUpdated:                                                 Long = System.currentTimeMillis(),
-    review:                                                           Option[String],
-    recommended:                                                      Option[Boolean],
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) votesHelpful: Option[Long],
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) votesFunny:   Option[Long],
-    weightedVoteScore:                                                Option[Double],
-    @JsonDeserialize(contentAs = classOf[Option[Long]]) commentCount: Option[Long],
-    steamPurchase:                                                    Option[Boolean],
-    receivedForFree:                                                  Option[Boolean],
-    writtenDuringEarlyAccess:                                         Option[Boolean],
-    authorPlaytimeForever:                                            Option[Double],
-    authorPlaytimeLastTwoWeeks:                                       Option[Double],
-    authorPlaytimeAtReview:                                           Option[Double],
-    authorLastPlayed:                                                 Option[Double]
-  )
+  case class CreateReview(review: ReviewState)
 
   case class UpdateReview(review: ReviewState)
 
@@ -81,7 +62,8 @@ object ReviewActor {
 
 }
 
-class ReviewActor(reviewId: Long) extends PersistentActor {
+class ReviewActor(reviewId: Long) extends PersistentActor
+                                  with ActorLogging {
 
   import ReviewActor._
 
@@ -204,57 +186,16 @@ class ReviewActor(reviewId: Long) extends PersistentActor {
   override def persistenceId: String = s"steam-review-$reviewId"
 
   override def receiveCommand: Receive = {
-    case CreateReview(
-    steamAppId,
-    authorId,
-    region,
-    _,
-    _,
-    review,
-    recommended,
-    votesHelpful,
-    votesFunny,
-    weightedVoteScore,
-    commentCount,
-    steamPurchase,
-    receivedForFree,
-    writtenDuringEarlyAccess,
-    authorPlaytimeLastTwoWeeks,
-    authorPlaytimeForever,
-    authorPlaytimeAtReview,
-    authorLastPlayed
-    ) =>
+    case CreateReview(review) =>
       val id               = state.reviewId
       val timestampCreated = Some(System.currentTimeMillis())
       val timestampUpdated = timestampCreated
 
-      if (review.isEmpty)
+      if (review.review.isEmpty)
         sender() ! new IllegalArgumentException("You need to provide a valid review.")
 
       persist(
-        ReviewCreated(
-          ReviewState(
-            id,
-            steamAppId,
-            authorId,
-            region,
-            review,
-            timestampCreated,
-            timestampUpdated,
-            recommended,
-            votesHelpful,
-            votesFunny,
-            weightedVoteScore,
-            commentCount,
-            steamPurchase,
-            receivedForFree,
-            writtenDuringEarlyAccess,
-            authorPlaytimeLastTwoWeeks,
-            authorPlaytimeForever,
-            authorPlaytimeAtReview,
-            authorLastPlayed
-          )
-        )
+        ReviewCreated(review.copy(reviewId = id, timestampCreated = timestampCreated, timestampUpdated = timestampUpdated))
       ) { event =>
         state = event.review
 

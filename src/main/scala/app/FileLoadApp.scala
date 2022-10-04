@@ -28,11 +28,7 @@ object FileLoadApp {
       "json-loader"
     )
 
-    csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews.csv")
-
-    system.scheduler.scheduleOnce(30.seconds) {
-      system.terminate()
-    }
+    csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews.csv", numberOfElements = 200000)
   }
 
 }

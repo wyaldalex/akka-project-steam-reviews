@@ -64,7 +64,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       saveSnapshot(reviewManagerState)
 
   override def receiveCommand: Receive = {
-    case createCommand: CreateReview =>
+    case CreateReview(review) =>
       val steamReviewId    = reviewManagerState.reviewCount
       val reviewActorName  = createActorName(steamReviewId)
       val reviewActor      = context.actorOf(
@@ -79,9 +79,9 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
         )
 
-        tryToSaveSnapshot()
+        //        tryToSaveSnapshot()
 
-        reviewActor.forward(createCommand)
+        reviewActor.forward(CreateReview(review.copy(reviewId = steamReviewId)))
       }
 
     case getCommand @ GetReviewInfo(id) =>
@@ -102,7 +102,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           reviewManagerState.reviews(id).isDisabled = true
           context.stop(reviewManagerState.reviews(id).actor)
 
-          tryToSaveSnapshot()
+          //          tryToSaveSnapshot()
 
           sender() ! ReviewDeletedResponse(Success(true))
         }
@@ -119,44 +119,26 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
         val controlledReview = ReviewController(reviewActor)
 
         persist(ReviewActorCreated(steamReviewId)) { _ =>
+          log.info("Review created {} with data {}", steamReviewId, review)
           reviewManagerState = reviewManagerState.copy(
             reviewManagerState.reviewCount + 1,
             reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
           )
 
-          tryToSaveSnapshot()
+          //          tryToSaveSnapshot()
 
-          reviewActor ! CreateReview(
-            steamAppId = review.steamAppId,
-            authorId = review.authorId,
-            region = review.region,
-            timestampCreated = review.timestampCreated.getOrElse(System.currentTimeMillis()),
-            timestampUpdated = review.timestampUpdated.getOrElse(System.currentTimeMillis()),
-            review = review.review,
-            recommended = review.recommended,
-            votesHelpful = review.votesHelpful,
-            votesFunny = review.votesFunny,
-            weightedVoteScore = review.weightedVoteScore,
-            commentCount = review.commentCount,
-            steamPurchase = review.steamPurchase,
-            receivedForFree = review.receivedForFree,
-            writtenDuringEarlyAccess = review.writtenDuringEarlyAccess,
-            authorPlaytimeForever = review.authorPlaytimeForever,
-            authorPlaytimeLastTwoWeeks = review.authorPlaytimeLastTwoWeeks,
-            authorPlaytimeAtReview = review.authorPlaytimeAtReview,
-            authorLastPlayed = review.authorLastPlayed
-          )
+          reviewActor ! CreateReview(review.copy(reviewId = steamReviewId))
         }
       }
-
-    case SaveSnapshotSuccess(metadata) =>
-      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
-
-    case SaveSnapshotFailure(metadata, reason) =>
-      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
+    //
+    //    case SaveSnapshotSuccess(metadata) =>
+    //      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+    //
+    //    case SaveSnapshotFailure(metadata, reason) =>
+    //      log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
 
     case any: Any =>
-    //      log.info(s"Got unhandled message: $any")
+      log.info(s"Got unhandled message: $any")
 
   }
 
@@ -181,9 +163,10 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
     case ReviewActorDeleted(id) =>
       reviewManagerState.reviews(id).isDisabled = true
 
-    case SnapshotOffer(metadata, state: ReviewManager) =>
-      log.info(s"Recovered snapshot ${metadata.persistenceId} - ${metadata.timestamp}")
-      reviewManagerState = state
+    //    case SnapshotOffer(metadata, state: ReviewManager) =>
+    //      log.info(s"Recovered snapshot ${metadata.persistenceId} - ${metadata.timestamp}")
+    //      log.info(s"Got snapshot with state: $state")
+    //      reviewManagerState = state
 
     case RecoveryCompleted =>
       log.info("Recovery completed successfully.")

@@ -35,7 +35,7 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
     authorLastPlayed:           Option[Double]
   ) {
     def toCommand: CreateReview = {
-      val timestampCreated            = System.currentTimeMillis()
+      val timestampCreated            = Option(System.currentTimeMillis())
       val timestampUpdated            = timestampCreated
       val weightedVoteScore           = Option(0D)
       val newRegion                   = Option(region)
@@ -44,7 +44,8 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
       val newSteamPurchase            = Option(steamPurchase)
       val newWrittenDuringEarlyAccess = Option(writtenDuringEarlyAccess)
 
-      CreateReview(
+      val reviewState = ReviewState(
+        reviewId = 0,
         steamAppId = steamAppId,
         authorId = authorId,
         region = newRegion,
@@ -64,6 +65,8 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
         authorPlaytimeAtReview = authorPlaytimeAtReview,
         authorLastPlayed = authorLastPlayed
       )
+
+      CreateReview(reviewState)
     }
   }
 

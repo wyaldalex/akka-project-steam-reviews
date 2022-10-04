@@ -100,8 +100,7 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       else
         sender() ! UserDeletedResponse(notFoundExceptionCreator(id))
 
-    case CreateUserFromCSV(UserState(_, name, numGamesOwned, numReviews)) =>
-      val userId = userManagerState.userCount
+    case CreateUserFromCSV(UserState(userId, name, numGamesOwned, numReviews)) =>
       if (!userManagerState.users.contains(userId)) {
         val userActor      = context.actorOf(
           UserActor.props(userId),
@@ -120,13 +119,13 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       }
 
     case SaveSnapshotSuccess(metadata) =>
-      log.info(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
+      log.debug(s"Saving snapshot succeeded: ${metadata.persistenceId} - ${metadata.timestamp}")
 
     case SaveSnapshotFailure(metadata, reason) =>
       log.warning(s"Saving snapshot failed: ${metadata.persistenceId} - ${metadata.timestamp} because of $reason.")
 
     case any: Any =>
-    //      log.info(s"Got unhandled message: $any")
+      log.debug(s"Got unhandled message: $any")
 
   }
 

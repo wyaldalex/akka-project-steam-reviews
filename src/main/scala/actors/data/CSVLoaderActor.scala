@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 
 object CSVLoaderActor {
   // commands
-  case class LoadCSV(file: String, startPosition: Long = 0)
+  case class LoadCSV(file: String, startPosition: Long = 0, numberOfElements: Int)
 
   def props(steamManagerActor: ActorRef)(implicit system: ActorSystem): Props =
     Props(new CSVLoaderActor(steamManagerActor))
@@ -141,13 +141,14 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
       csvParserFlowFromPosition
 
   override def receive: Receive = {
-    case LoadCSV(file, startPosition) =>
+    case LoadCSV(file, startPosition, numberOfElements) =>
       log.info(s"reading file $file")
 
       FileIO.fromPath(Paths.get(file), 8192, startPosition)
         .via(CsvParsing.lineScanner(maximumLineLength = Int.MaxValue))
         .via(csvTransformerToDataEntities(startPosition))
         .throttle(1000, 3.seconds)
+        .take(numberOfElements)
         .runWith(
           Sink.actorRefWithBackpressure(
             ref = steamManagerActor,
