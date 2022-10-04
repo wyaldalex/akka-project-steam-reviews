@@ -13,8 +13,8 @@ import scala.concurrent.duration._
 object FileLoadApp {
 
   def main(args: Array[String]): Unit = {
-    implicit val system    : ActorSystem      = ActorSystem("CSVLoadSystem")
-    implicit val timeout   : Timeout          = Timeout(5.seconds)
+    implicit val system    : ActorSystem      = ActorSystem("SteamReviewsMicroservice")
+    implicit val timeout   : Timeout          = Timeout(20.seconds)
     implicit val dispatcher: ExecutionContext = system.dispatcher
 
     val (gameManagerActor, userManagerActor, reviewManagerActor) = initAkkaActors()
@@ -34,4 +34,5 @@ object FileLoadApp {
       system.terminate()
     }
   }
+
 }

@@ -40,12 +40,16 @@ object MainRouter {
       )
 
     case exception: IllegalArgumentException =>
+      exception.printStackTrace()
+
       complete(
         StatusCodes.BadRequest,
         Response(statusCode = StatusCodes.BadRequest.intValue, message = Some(exception.getMessage))
       )
 
     case exception: RuntimeException =>
+      exception.printStackTrace()
+
       complete(
         StatusCodes.BadRequest,
         Response(statusCode = StatusCodes.BadRequest.intValue, message = Some(exception.getMessage))

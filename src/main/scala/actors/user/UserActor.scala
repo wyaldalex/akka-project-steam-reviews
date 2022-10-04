@@ -1,38 +1,46 @@
 package dev.galre.josue.akkaProject
 package actors.user
 
+import util.CborSerializable
+
 import akka.actor.Props
 import akka.persistence.PersistentActor
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 import scala.util.{ Failure, Success, Try }
 
 object UserActor {
   // state
-  case class UserState(userId: BigInt, name: Option[String] = None, numGamesOwned: Option[Long] = None, numReviews: Option[Long] = None)
+  case class UserState(
+    @JsonDeserialize(contentAs = classOf[Long]) userId:       Long,
+    name:                                                     Option[String] = None,
+    @JsonDeserialize(contentAs = classOf[Int]) numGamesOwned: Option[Int] = None,
+    @JsonDeserialize(contentAs = classOf[Int]) numReviews:    Option[Int] = None
+  ) extends CborSerializable
 
   // commands
-  case class CreateUser(name: String, numGamesOwned: Option[Long], numReviews: Option[Long])
+  case class CreateUser(name: String, numGamesOwned: Option[Int], numReviews: Option[Int])
 
   case class UpdateUser(
-    userId:        BigInt,
+    userId:        Long,
     name:          Option[String] = None,
-    numGamesOwned: Option[Long] = None,
-    numReviews:    Option[Long] = None
+    numGamesOwned: Option[Int] = None,
+    numReviews:    Option[Int] = None
   )
 
-  case class DeleteUser(userId: BigInt)
+  case class DeleteUser(userId: Long)
 
-  case class GetUserInfo(userId: BigInt)
+  case class GetUserInfo(userId: Long)
 
 
   // events
-  case class UserCreated(user: UserState)
+  case class UserCreated(user: UserState) extends CborSerializable
 
-  case class UserUpdated(user: UserState)
+  case class UserUpdated(user: UserState) extends CborSerializable
 
 
   // responses
-  case class UserCreatedResponse(id: Try[BigInt])
+  case class UserCreatedResponse(id: Try[Long])
 
   case class UserUpdatedResponse(maybeAccount: Try[UserState])
 
@@ -41,10 +49,10 @@ object UserActor {
   case class UserDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
 
 
-  def props(userId: BigInt): Props = Props(new UserActor(userId))
+  def props(userId: Long): Props = Props(new UserActor(userId))
 }
 
-class UserActor(userId: BigInt) extends PersistentActor {
+class UserActor(userId: Long) extends PersistentActor {
 
   import UserActor._
 

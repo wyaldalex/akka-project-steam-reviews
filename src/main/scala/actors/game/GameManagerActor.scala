@@ -3,11 +3,13 @@ package actors.game
 
 import actors.GameController
 import actors.game.GameActor.GameState
+import util.CborSerializable
 
 import akka.actor.{ ActorLogging, Props }
 import akka.pattern.{ ask, pipe }
 import akka.persistence._
 import akka.util.Timeout
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -17,9 +19,9 @@ object GameManagerActor {
 
   // games
   case class GameManager(
-    var gameCount: BigInt = BigInt(0),
-    games:         mutable.AnyRefMap[BigInt, GameController]
-  )
+    var gameCount: Long = 0,
+    games:         mutable.HashMap[Long, GameController]
+  ) extends CborSerializable
 
   val gameManagerSnapshotInterval = 10
 
@@ -27,11 +29,17 @@ object GameManagerActor {
   case class CreateGameFromCSV(game: GameState)
 
   // events
-  case class GameActorCreated(id: BigInt, steamAppName: String)
+  case class GameActorCreated(
+    @JsonDeserialize(contentAs = classOf[Long]) id: Long,
+    steamAppName:                                   String
+  ) extends CborSerializable
 
-  case class GameActorUpdated(id: BigInt, steamAppName: String)
+  case class GameActorUpdated(
+    @JsonDeserialize(contentAs = classOf[Long]) id: Long,
+    steamAppName:                                   String
+  ) extends CborSerializable
 
-  case class GameActorDeleted(id: BigInt)
+  case class GameActorDeleted(id: Long) extends CborSerializable
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new GameManagerActor())
 }
@@ -43,19 +51,19 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   import GameActor._
   import GameManagerActor._
 
-  var gameManagerState: GameManager = GameManager(games = mutable.AnyRefMap())
+  var gameManagerState: GameManager = GameManager(games = mutable.HashMap())
 
   override def persistenceId: String = "steam-games-manager"
 
-  def createActorName(steamGameId: BigInt): String = s"steam-app-$steamGameId"
+  def createActorName(steamGameId: Long): String = s"steam-app-$steamGameId"
 
   def gameAlreadyExists(steamAppName: String): Boolean =
     gameManagerState.games.values.exists(game => game.name == steamAppName && !game.isDisabled)
 
-  def isGameAvailable(id: BigInt): Boolean =
+  def isGameAvailable(id: Long): Boolean =
     gameManagerState.games.contains(id) && !gameManagerState.games(id).isDisabled
 
-  def notFoundExceptionCreator[T](id: BigInt): Try[T] =
+  def notFoundExceptionCreator[T](id: Long): Try[T] =
     Failure(NotFoundException(s"A game with the id $id couldn't be found"))
 
   def tryToSaveSnapshot(): Unit =

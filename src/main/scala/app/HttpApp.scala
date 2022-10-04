@@ -15,7 +15,7 @@ import scala.util.{ Failure, Success }
 object HttpApp {
 
   def main(args: Array[String]): Unit = {
-    implicit val system    : ActorSystem      = ActorSystem("AkkaProjectSystem")
+    implicit val system    : ActorSystem      = ActorSystem("SteamReviewsMicroservice")
     implicit val dispatcher: ExecutionContext = system.dispatcher
     implicit val timeout   : Timeout          = Timeout(20.seconds)
 

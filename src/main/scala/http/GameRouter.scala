@@ -22,19 +22,19 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
   }
 
   private case class UpdateGameRequest(steamAppName: String) {
-    def toCommand(id: BigInt): UpdateName = UpdateName(id, steamAppName)
+    def toCommand(id: Long): UpdateName = UpdateName(id, steamAppName)
   }
 
   private def createGameAction(createGame: CreateGameRequest): Future[GameCreatedResponse] =
     (gameManagerActor ? createGame.toCommand).mapTo[GameCreatedResponse]
 
-  private def updateNameAction(id: BigInt, updateGame: UpdateGameRequest): Future[GameUpdatedResponse] =
+  private def updateNameAction(id: Long, updateGame: UpdateGameRequest): Future[GameUpdatedResponse] =
     (gameManagerActor ? updateGame.toCommand(id)).mapTo[GameUpdatedResponse]
 
-  private def getGameInfoAction(id: BigInt): Future[GetGameInfoResponse] =
+  private def getGameInfoAction(id: Long): Future[GetGameInfoResponse] =
     (gameManagerActor ? GetGameInfo(id)).mapTo[GetGameInfoResponse]
 
-  private def deleteGameAction(id: BigInt): Future[GameDeletedResponse] =
+  private def deleteGameAction(id: Long): Future[GameDeletedResponse] =
     (gameManagerActor ? DeleteGame(id)).mapTo[GameDeletedResponse]
 
 

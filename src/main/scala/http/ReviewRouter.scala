@@ -18,14 +18,14 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
   import actors.review.ReviewActor._
 
   private case class CreateReviewRequest(
-    steamAppId:                 BigInt,
-    authorId:                   BigInt,
+    steamAppId:                 Long,
+    authorId:                   Long,
     region:                     String,
     review:                     String,
     recommended:                Boolean,
-    commentCount:               Option[BigInt],
-    votesFunny:                 Option[BigInt],
-    votesHelpful:               Option[BigInt],
+    commentCount:               Option[Long],
+    votesFunny:                 Option[Long],
+    votesHelpful:               Option[Long],
     steamPurchase:              Boolean,
     receivedForFree:            Option[Boolean],
     writtenDuringEarlyAccess:   Boolean,
@@ -71,16 +71,16 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
     region:                     Option[String],
     review:                     Option[String],
     recommended:                Option[Boolean],
-    votesHelpful:               Option[BigInt],
-    votesFunny:                 Option[BigInt],
-    commentCount:               Option[BigInt],
+    votesHelpful:               Option[Long],
+    votesFunny:                 Option[Long],
+    commentCount:               Option[Long],
     receivedForFree:            Option[Boolean],
     authorPlaytimeForever:      Option[Double],
     authorPlaytimeLastTwoWeeks: Option[Double],
     authorPlaytimeAtReview:     Option[Double],
     authorLastPlayed:           Option[Double]
   ) {
-    def toCommand(id: BigInt): UpdateReview = {
+    def toCommand(id: Long): UpdateReview = {
       val weightedVoteScore = Option(0D)
 
       UpdateReview(
@@ -106,13 +106,13 @@ case class ReviewRouter(reviewManagerActor: ActorRef)(implicit timeout: Timeout)
   private def createReviewAction(createReview: CreateReviewRequest): Future[ReviewCreatedResponse] =
     (reviewManagerActor ? createReview.toCommand).mapTo[ReviewCreatedResponse]
 
-  private def updateNameAction(id: BigInt, updateReview: UpdateReviewRequest): Future[ReviewUpdatedResponse] =
+  private def updateNameAction(id: Long, updateReview: UpdateReviewRequest): Future[ReviewUpdatedResponse] =
     (reviewManagerActor ? updateReview.toCommand(id)).mapTo[ReviewUpdatedResponse]
 
-  private def getReviewInfoAction(id: BigInt): Future[GetReviewInfoResponse] =
+  private def getReviewInfoAction(id: Long): Future[GetReviewInfoResponse] =
     (reviewManagerActor ? GetReviewInfo(id)).mapTo[GetReviewInfoResponse]
 
-  private def deleteReviewAction(id: BigInt): Future[ReviewDeletedResponse] =
+  private def deleteReviewAction(id: Long): Future[ReviewDeletedResponse] =
     (reviewManagerActor ? DeleteReview(id)).mapTo[ReviewDeletedResponse]
 
 

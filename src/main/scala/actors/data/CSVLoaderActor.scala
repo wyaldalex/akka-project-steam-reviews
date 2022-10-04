@@ -31,18 +31,18 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
   import SteamManagerActor._
 
   def convertCSVData(row: Map[String, String]): CSVDataToLoad = {
-    val reviewId                 = longToBigInt(row("review_id").toLong)
-    val steamAppId               = longToBigInt(row("app_id").toLong)
-    val authorId                 = longToBigInt(row("author.steamid").toLong)
+    val reviewId                 = row("review_id").toLong
+    val steamAppId               = row("app_id").toLong
+    val authorId                 = row("author.steamid").toLong
     val region                   = row.get("language")
     val reviewValue              = row.get("review")
-    val timestampCreated         = row.get("timestamp_created").flatMap(value => optionLongToOptionBigInt(value.toLongOption))
-    val timestampUpdated         = row.get("timestamp_updated").flatMap(value => optionLongToOptionBigInt(value.toLongOption))
+    val timestampCreated         = row.get("timestamp_created").flatMap(_.toLongOption)
+    val timestampUpdated         = row.get("timestamp_updated").flatMap(_.toLongOption)
     val recommended              = row("recommended").toBooleanOption
-    val votesHelpful             = optionLongToOptionBigInt(row("votes_helpful").toLongOption)
-    val votesFunny               = optionLongToOptionBigInt(row("votes_funny").toLongOption)
+    val votesHelpful             = row("votes_helpful").toLongOption
+    val votesFunny               = row("votes_funny").toLongOption
     val weightedVoteScore        = row("weighted_vote_score").toDoubleOption
-    val commentCount             = optionLongToOptionBigInt(row("comment_count").toLongOption)
+    val commentCount             = row("comment_count").toLongOption
     val steamPurchase            = row("steam_purchase").toBooleanOption
     val receivedForFree          = row("received_for_free").toBooleanOption
     val writtenDuringEarlyAccess = row("written_during_early_access").toBooleanOption
@@ -74,8 +74,8 @@ class CSVLoaderActor(steamManagerActor: ActorRef)(implicit system: ActorSystem)
     )
 
     val name          = Some(s"user$authorId")
-    val numGamesOwned = row("author.num_games_owned").toLongOption
-    val numReviews    = row("author.num_reviews").toLongOption
+    val numGamesOwned = row("author.num_games_owned").toIntOption
+    val numReviews    = row("author.num_reviews").toIntOption
 
     val user = UserState(
       authorId,

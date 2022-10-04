@@ -17,29 +17,29 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
 
   import actors.user.UserActor._
 
-  private case class CreateUserRequest(name: String, numGamesOwned: Option[Long], numReviews: Option[Long]) {
+  private case class CreateUserRequest(name: String, numGamesOwned: Option[Int], numReviews: Option[Int]) {
     def toCommand: CreateUser = {
-      val newNumGamesOwned = if (numGamesOwned.isEmpty) Some(0L) else numGamesOwned
-      val newNumReviews    = if (numReviews.isEmpty) Some(0L) else numReviews
+      val newNumGamesOwned = if (numGamesOwned.isEmpty) Some(0) else numGamesOwned
+      val newNumReviews    = if (numReviews.isEmpty) Some(0) else numReviews
 
       CreateUser(name, newNumGamesOwned, newNumReviews)
     }
   }
 
-  private case class UpdateUserRequest(name: Option[String], numGamesOwned: Option[Long], numReviews: Option[Long]) {
-    def toCommand(id: BigInt): UpdateUser = UpdateUser(id, name, numGamesOwned, numReviews)
+  private case class UpdateUserRequest(name: Option[String], numGamesOwned: Option[Int], numReviews: Option[Int]) {
+    def toCommand(id: Long): UpdateUser = UpdateUser(id, name, numGamesOwned, numReviews)
   }
 
   private def createUserAction(createUser: CreateUserRequest): Future[UserCreatedResponse] =
     (userManagerActor ? createUser.toCommand).mapTo[UserCreatedResponse]
 
-  private def updateNameAction(id: BigInt, updateUser: UpdateUserRequest): Future[UserUpdatedResponse] =
+  private def updateNameAction(id: Long, updateUser: UpdateUserRequest): Future[UserUpdatedResponse] =
     (userManagerActor ? updateUser.toCommand(id)).mapTo[UserUpdatedResponse]
 
-  private def getUserInfoAction(id: BigInt): Future[GetUserInfoResponse] =
+  private def getUserInfoAction(id: Long): Future[GetUserInfoResponse] =
     (userManagerActor ? GetUserInfo(id)).mapTo[GetUserInfoResponse]
 
-  private def deleteUserAction(id: BigInt): Future[UserDeletedResponse] =
+  private def deleteUserAction(id: Long): Future[UserDeletedResponse] =
     (userManagerActor ? DeleteUser(id)).mapTo[UserDeletedResponse]
 
 
@@ -66,6 +66,7 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
             get {
               onSuccess(getUserInfoAction(steamUserId)) {
                 case GetUserInfoResponse(Success(state)) =>
+                  println(state)
                   complete(state)
 
                 case GetUserInfoResponse(Failure(exception)) =>

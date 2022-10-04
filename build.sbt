@@ -29,6 +29,7 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-remote" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
   "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+  "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
   // akka persistence
   "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,

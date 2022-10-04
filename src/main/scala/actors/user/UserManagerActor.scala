@@ -3,6 +3,7 @@ package actors.user
 
 import actors.UserController
 import actors.user.UserActor.UserState
+import util.CborSerializable
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence._
@@ -17,9 +18,9 @@ object UserManagerActor {
 
   // users
   case class UserManager(
-    var userCount: BigInt = BigInt(0),
-    users:         mutable.AnyRefMap[BigInt, UserController]
-  )
+    var userCount: Long = 0,
+    users:         mutable.HashMap[Long, UserController]
+  ) extends CborSerializable
 
   val userManagerSnapshotInterval = 1000
 
@@ -27,9 +28,9 @@ object UserManagerActor {
   case class CreateUserFromCSV(game: UserState)
 
   // events
-  case class UserActorCreated(id: BigInt)
+  case class UserActorCreated(id: Long) extends CborSerializable
 
-  case class UserActorDeleted(id: BigInt)
+  case class UserActorDeleted(id: Long) extends CborSerializable
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new UserManagerActor())
 }
@@ -41,16 +42,16 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   import UserActor._
   import UserManagerActor._
 
-  var userManagerState: UserManager = UserManager(users = mutable.AnyRefMap())
+  var userManagerState: UserManager = UserManager(users = mutable.HashMap())
 
   override def persistenceId: String = "steam-user-manager"
 
-  def isUserAvailable(id: BigInt): Boolean =
+  def isUserAvailable(id: Long): Boolean =
     userManagerState.users.contains(id) && !userManagerState.users(id).isDisabled
 
-  def createActorName(steamUserId: BigInt): String = s"steam-user-$steamUserId"
+  def createActorName(steamUserId: Long): String = s"steam-user-$steamUserId"
 
-  def notFoundExceptionCreator[T](id: BigInt): Try[T] =
+  def notFoundExceptionCreator[T](id: Long): Try[T] =
     Failure(NotFoundException(s"An user with the id $id couldn't be found"))
 
   def tryToSaveSnapshot(): Unit =
@@ -99,8 +100,8 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       else
         sender() ! UserDeletedResponse(notFoundExceptionCreator(id))
 
-
-    case CreateUserFromCSV(UserState(userId, name, numGamesOwned, numReviews)) =>
+    case CreateUserFromCSV(UserState(_, name, numGamesOwned, numReviews)) =>
+      val userId = userManagerState.userCount
       if (!userManagerState.users.contains(userId)) {
         val userActor      = context.actorOf(
           UserActor.props(userId),
@@ -110,7 +111,8 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
         persist(UserActorCreated(userId)) { _ =>
           userManagerState = userManagerState.copy(
-            users = userManagerState.users.addOne(userId -> controlledUser)
+            userManagerState.userCount + 1,
+            userManagerState.users.addOne(userId -> controlledUser)
           )
 
           userActor ! CreateUser(name.getOrElse(""), numGamesOwned, numReviews)
@@ -149,7 +151,8 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
     case UserActorDeleted(id) =>
       userManagerState.users(id).isDisabled = true
 
-    case SnapshotOffer(_, state: UserManager) =>
+    case SnapshotOffer(metadata, state: UserManager) =>
+      log.info(s"Recovered snapshot ${metadata.persistenceId} - ${metadata.timestamp}")
       userManagerState = state
 
     case RecoveryCompleted =>

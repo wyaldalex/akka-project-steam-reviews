@@ -3,10 +3,12 @@ package actors.review
 
 import actors.ReviewController
 import actors.review.ReviewActor.ReviewState
+import util.CborSerializable
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence._
 import akka.util.Timeout
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -17,9 +19,9 @@ object ReviewManagerActor {
 
   // reviews
   case class ReviewManager(
-    var reviewCount: BigInt = BigInt(0),
-    reviews:         mutable.AnyRefMap[BigInt, ReviewController]
-  )
+    var reviewCount: Long = 0,
+    reviews:         mutable.HashMap[Long, ReviewController]
+  ) extends CborSerializable
 
   val reviewManagerSnapshotInterval = 1000
 
@@ -27,9 +29,13 @@ object ReviewManagerActor {
   case class CreateReviewFromCSV(review: ReviewState)
 
   // events
-  case class ReviewActorCreated(id: BigInt)
+  case class ReviewActorCreated(
+    @JsonDeserialize(contentAs = classOf[Long]) id: Long
+  ) extends CborSerializable
 
-  case class ReviewActorDeleted(id: BigInt)
+  case class ReviewActorDeleted(
+    @JsonDeserialize(contentAs = classOf[Long]) id: Long
+  ) extends CborSerializable
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new ReviewManagerActor())
 }
@@ -41,16 +47,16 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
   import ReviewActor._
   import ReviewManagerActor._
 
-  var reviewManagerState: ReviewManager = ReviewManager(reviews = mutable.AnyRefMap())
+  var reviewManagerState: ReviewManager = ReviewManager(reviews = mutable.HashMap())
 
   override def persistenceId: String = "steam-review-manager"
 
-  def isReviewAvailable(id: BigInt): Boolean =
+  def isReviewAvailable(id: Long): Boolean =
     reviewManagerState.reviews.contains(id) && !reviewManagerState.reviews(id).isDisabled
 
-  def createActorName(steamReviewId: BigInt): String = s"steam-review-$steamReviewId"
+  def createActorName(steamReviewId: Long): String = s"steam-review-$steamReviewId"
 
-  def notFoundExceptionCreator[T](id: BigInt): Try[T] =
+  def notFoundExceptionCreator[T](id: Long): Try[T] =
     Failure(NotFoundException(s"A review with the id $id couldn't be found"))
 
   def tryToSaveSnapshot(): Unit =
@@ -124,7 +130,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
             steamAppId = review.steamAppId,
             authorId = review.authorId,
             region = review.region,
-            timestampCreated = review.timestampCreated.getOrElse(longToBigInt(System.currentTimeMillis())),
+            timestampCreated = review.timestampCreated.getOrElse(System.currentTimeMillis()),
             timestampUpdated = review.timestampUpdated.getOrElse(System.currentTimeMillis()),
             review = review.review,
             recommended = review.recommended,

@@ -1,6 +1,8 @@
 package dev.galre.josue.akkaProject
 package actors.game
 
+import util.CborSerializable
+
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 
@@ -8,25 +10,30 @@ import scala.util.{ Failure, Success, Try }
 
 object GameActor {
   // state
-  case class GameState(steamAppId: BigInt, steamAppName: String)
+
+  case class GameState(
+    steamAppId:   Long,
+    steamAppName: String
+  )
+    extends CborSerializable
 
   // commands
   case class CreateGame(steamAppName: String)
 
-  case class UpdateName(id: BigInt, newName: String)
+  case class UpdateName(id: Long, newName: String)
 
-  case class DeleteGame(id: BigInt)
+  case class DeleteGame(id: Long)
 
-  case class GetGameInfo(id: BigInt)
+  case class GetGameInfo(id: Long)
 
   // events
-  case class GameCreated(game: GameState)
+  case class GameCreated(game: GameState) extends CborSerializable
 
-  case class GameUpdated(newName: String)
+  case class GameUpdated(newName: String) extends CborSerializable
 
 
   //responses
-  case class GameCreatedResponse(steamAppId: Try[BigInt])
+  case class GameCreatedResponse(steamAppId: Try[Long])
 
   case class GameUpdatedResponse(maybeGame: Try[GameState])
 
@@ -35,10 +42,10 @@ object GameActor {
   case class GameDeletedResponse(gameWasDeletedSuccessfully: Try[Boolean])
 
 
-  def props(userId: BigInt): Props = Props(new GameActor(userId))
+  def props(userId: Long): Props = Props(new GameActor(userId))
 }
 
-class GameActor(steamAppId: BigInt)
+class GameActor(steamAppId: Long)
   extends PersistentActor
   with ActorLogging {
 
