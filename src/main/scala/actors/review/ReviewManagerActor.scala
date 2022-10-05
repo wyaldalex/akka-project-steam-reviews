@@ -11,6 +11,7 @@ import akka.persistence._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
@@ -45,7 +46,7 @@ object ReviewManagerActor {
   ) extends CborSerializable
 
   // responses
-  case class GetAllReviewsByFilterResponse(page: Int, total: Long, reviews: List[Option[ReviewState]])
+  case class GetAllReviewsByFilterResponse(perPage: Int, reviews: List[Option[ReviewState]])
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new ReviewManagerActor())
 }
@@ -73,16 +74,11 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
     if (lastSequenceNr % reviewManagerSnapshotInterval == 0 && lastSequenceNr != 0)
       saveSnapshot(reviewManagerState)
 
-  def getReviewInfoResponseByFilter(
-    filteredReviews: Iterable[ReviewController],
-    id:              Long,
-    page:            Int,
-    perPage:         Int
-  ): Future[Iterable[Option[ReviewState]]] = {
+  def getReviewInfoResponseByFilter(filteredReviews: Iterable[ReviewController]): Future[Iterable[Option[ReviewState]]] = {
     Future.traverse(
-      filteredReviews.slice(page * perPage, page * perPage + perPage)
+      filteredReviews
     ) { reviewController =>
-      (reviewController.actor ? GetReviewInfo(id)).mapTo[GetReviewInfoResponse].map {
+      (reviewController.actor ? GetReviewInfo(0)).mapTo[GetReviewInfoResponse].map {
         case GetReviewInfoResponse(maybeReview) =>
           maybeReview match {
             case Success(review) => Some(review)
@@ -91,6 +87,23 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           }
       }
     }
+  }
+
+  def filterRecursive(condition: ReviewController => Boolean, page: Int, perPage: Int): List[ReviewController] = {
+    @tailrec
+    def filterHelper(acc: List[ReviewController], start: Long): List[ReviewController] = {
+      if (acc.size == perPage || start > reviewManagerState.reviews.size) acc
+      else {
+        val newAcc = reviewManagerState.reviews.get(start) match {
+          case Some(review) if condition(review) && !review.isDisabled => acc :+ review
+          case _ => acc
+        }
+
+        filterHelper(newAcc, start + 1)
+      }
+    }
+
+    filterHelper(Nil, page)
   }
 
   override def receiveCommand: Receive = {
@@ -121,15 +134,14 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
         sender() ! GetReviewInfoResponse(notFoundExceptionCreator(id))
 
     case GetAllReviewsByAuthor(authorId, page, perPage) =>
-      val filteredReviews = reviewManagerState.reviews.values.filter(_.userId == authorId)
-      val replyTo         = sender()
+      val filteredRecursiveReviews = filterRecursive(_.userId == authorId, page, perPage)
+      val replyTo                  = sender()
 
-      val paginatedReviews = getReviewInfoResponseByFilter(filteredReviews, authorId, page, perPage)
+      val paginatedReviews = getReviewInfoResponseByFilter(filteredRecursiveReviews)
 
       paginatedReviews.onComplete {
         case Success(value) =>
-          log.info(s"got $value")
-          replyTo ! Success(GetAllReviewsByFilterResponse(page, filteredReviews.size, value.toList))
+          replyTo ! Success(GetAllReviewsByFilterResponse(perPage, value.toList))
 
         case Failure(exception) =>
           exception.printStackTrace()
@@ -139,15 +151,14 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       }
 
     case GetAllReviewsByGame(steamAppId, page, perPage) =>
-      val filteredReviews = reviewManagerState.reviews.values.filter(_.steamAppId == steamAppId)
-      val replyTo         = sender()
+      val filteredRecursiveReviews = filterRecursive(_.steamAppId == steamAppId, page, perPage)
+      val replyTo                  = sender()
 
-      val paginatedReviews = getReviewInfoResponseByFilter(filteredReviews, steamAppId, page, perPage)
+      val paginatedReviews = getReviewInfoResponseByFilter(filteredRecursiveReviews)
 
       paginatedReviews.onComplete {
         case Success(value) =>
-          log.info(s"got $value")
-          replyTo ! Success(GetAllReviewsByFilterResponse(page, filteredReviews.size, value.toList))
+          replyTo ! Success(GetAllReviewsByFilterResponse(perPage, value.toList))
 
         case Failure(exception) =>
           exception.printStackTrace()
