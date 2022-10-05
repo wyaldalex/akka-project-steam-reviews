@@ -91,6 +91,18 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       else
         sender() ! UserUpdatedResponse(notFoundExceptionCreator(id))
 
+    case addOneReviewCommand @ AddOneReview(id) =>
+      if (isUserAvailable(id))
+        userManagerState.users(id).actor.forward(addOneReviewCommand)
+      else
+        sender() ! AddedOneReviewResponse(notFoundExceptionCreator(id))
+
+    case removeOneReviewCommand @ RemoveOneReview(id) =>
+      if (isUserAvailable(id))
+        userManagerState.users(id).actor.forward(removeOneReviewCommand)
+      else
+        sender() ! RemovedOneReviewResponse(notFoundExceptionCreator(id))
+
     case DeleteUser(id) =>
       if (isUserAvailable(id))
         persist(UserActorDeleted(id)) { _ =>

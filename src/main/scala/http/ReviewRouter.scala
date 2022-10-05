@@ -3,7 +3,7 @@ package http
 
 import actors.game.GameActor.{ GetGameInfo, GetGameInfoResponse }
 import actors.review.ReviewManagerActor.{ GetAllReviewsByAuthor, GetAllReviewsByFilterResponse, GetAllReviewsByGame }
-import actors.user.UserActor.{ GetUserInfo, GetUserInfoResponse }
+import actors.user.UserActor._
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
@@ -117,6 +117,12 @@ case class ReviewRouter(
 
   private def createReviewAction(createReview: CreateReviewRequest): Future[ReviewCreatedResponse] =
     (reviewManagerActor ? createReview.toCommand).mapTo[ReviewCreatedResponse]
+
+  private def addOneReviewAction(id: Long): Future[AddedOneReviewResponse] =
+    (userManagerActor ? AddOneReview(id)).mapTo[AddedOneReviewResponse]
+
+  private def deleteOneReviewAction(id: Long): Future[RemovedOneReviewResponse] =
+    (userManagerActor ? RemoveOneReview(id)).mapTo[RemovedOneReviewResponse]
 
   private def updateNameAction(id: Long, updateReview: UpdateReviewRequest): Future[ReviewUpdatedResponse] =
     (reviewManagerActor ? updateReview.toCommand(id)).mapTo[ReviewUpdatedResponse]
@@ -263,10 +269,10 @@ case class ReviewRouter(
             )
           }
         },
-        path(LongNumber) { steamAppId =>
+        path(LongNumber) { steamReviewId =>
           concat(
             get {
-              onSuccess(getReviewInfoAction(steamAppId)) {
+              onSuccess(getReviewInfoAction(steamReviewId)) {
                 case GetReviewInfoResponse(Success(state)) =>
                   complete(state)
 
@@ -276,7 +282,7 @@ case class ReviewRouter(
             },
             patch {
               entity(as[UpdateReviewRequest]) { updateName =>
-                onSuccess(updateNameAction(steamAppId, updateName)) {
+                onSuccess(updateNameAction(steamReviewId, updateName)) {
                   case ReviewUpdatedResponse(Success(state)) =>
                     complete(state)
 
@@ -286,31 +292,53 @@ case class ReviewRouter(
               }
             },
             delete {
-              onSuccess(deleteReviewAction(steamAppId)) {
-                case ReviewDeletedResponse(Success(_)) =>
-                  complete(
-                    Response(
-                      statusCode = StatusCodes.OK.intValue,
-                      message = Some("ReviewState was deleted successfully.")
-                    )
-                  )
+              onSuccess(getReviewInfoAction(steamReviewId)) {
+                case GetReviewInfoResponse(Success(state)) =>
+                  val authorId = state.authorId
 
-                case ReviewDeletedResponse(Failure(exception)) =>
+                  onSuccess(deleteReviewAction(steamReviewId)) {
+                    case ReviewDeletedResponse(Success(_)) =>
+
+                      onSuccess(deleteOneReviewAction(authorId)) {
+                        case RemovedOneReviewResponse(Success(_)) =>
+                          complete(
+                            Response(
+                              statusCode = StatusCodes.OK.intValue,
+                              message = Some("Review was deleted successfully.")
+                            )
+                          )
+
+                        case RemovedOneReviewResponse(Failure(exception)) =>
+                          throw exception
+                      }
+
+                    case ReviewDeletedResponse(Failure(exception)) =>
+                      throw exception
+                  }
+
+                case GetReviewInfoResponse(Failure(exception)) =>
                   throw exception
               }
             }
           )
         },
         pathEndOrSingleSlash {
-
           post {
             entity(as[CreateReviewRequest]) { review =>
+              val authorId   = review.authorId
+              val steamAppId = review.steamAppId
 
-              checkIfAuthorAndGameAreValid(review.steamAppId, review.authorId) {
+              checkIfAuthorAndGameAreValid(steamAppId, authorId) {
                 onSuccess(createReviewAction(review)) {
-                  case ReviewCreatedResponse(Success(steamAppId)) =>
-                    respondWithHeader(Location(s"/reviews/$steamAppId")) {
-                      complete(StatusCodes.Created)
+                  case ReviewCreatedResponse(Success(steamReviewId)) =>
+                    onSuccess(addOneReviewAction(authorId)) {
+                      case AddedOneReviewResponse(Success(_)) =>
+                        respondWithHeader(Location(s"/reviews/$steamReviewId")) {
+                          complete(StatusCodes.Created)
+                        }
+
+                      case AddedOneReviewResponse(Failure(exception)) =>
+                        throw exception
                     }
 
                   case ReviewCreatedResponse(Failure(exception)) =>

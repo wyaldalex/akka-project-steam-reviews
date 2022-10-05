@@ -32,6 +32,10 @@ object UserActor {
 
   case class GetUserInfo(userId: Long)
 
+  case class AddOneReview(userId: Long)
+
+  case class RemoveOneReview(userId: Long)
+
 
   // events
   case class UserCreated(user: UserState) extends CborSerializable
@@ -47,6 +51,10 @@ object UserActor {
   case class GetUserInfoResponse(maybeAccount: Try[UserState])
 
   case class UserDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
+
+  case class AddedOneReviewResponse(wasSuccess: Try[Boolean])
+
+  case class RemovedOneReviewResponse(wasSuccess: Try[Boolean])
 
 
   def props(userId: Long): Props = Props(new UserActor(userId))
@@ -87,6 +95,22 @@ class UserActor(userId: Long) extends PersistentActor {
           state = event.user
           sender() ! UserUpdatedResponse(Success(state))
         }
+
+    case AddOneReview(_) =>
+      val newNumReviews = for (current <- state.numReviews) yield current + 1
+
+      persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
+        state = event.user
+        sender() ! AddedOneReviewResponse(Success(true))
+      }
+
+    case RemoveOneReview(_) =>
+      val newNumReviews = for (current <- state.numReviews) yield current - 1
+
+      persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
+        state = event.user
+        sender() ! RemovedOneReviewResponse(Success(true))
+      }
 
     case GetUserInfo(_) =>
       sender() ! GetUserInfoResponse(Success(state))
