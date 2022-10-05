@@ -7,6 +7,6 @@ package object actors {
 
   case class UserController(actor: ActorRef, var isDisabled: Boolean = false)
 
-  case class ReviewController(actor: ActorRef, var isDisabled: Boolean = false)
+  case class ReviewController(actor: ActorRef, userId: Long, steamAppId: Long, var isDisabled: Boolean = false)
 
 }

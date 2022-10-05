@@ -52,9 +52,9 @@ object ReviewActor {
   // responses
   case class ReviewCreatedResponse(reviewId: Try[Long])
 
-  case class ReviewUpdatedResponse(maybeAccount: Try[ReviewState])
+  case class ReviewUpdatedResponse(maybeReview: Try[ReviewState])
 
-  case class GetReviewInfoResponse(maybeAccount: Try[ReviewState])
+  case class GetReviewInfoResponse(maybeReview: Try[ReviewState])
 
   case class ReviewDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
 

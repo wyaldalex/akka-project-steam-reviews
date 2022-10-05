@@ -6,12 +6,13 @@ import actors.review.ReviewActor.ReviewState
 import util.CborSerializable
 
 import akka.actor.{ ActorLogging, Props }
+import akka.pattern.ask
 import akka.persistence._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
 
@@ -28,14 +29,23 @@ object ReviewManagerActor {
   // commands
   case class CreateReviewFromCSV(review: ReviewState)
 
+  case class GetAllReviewsByAuthor(authorId: Long, page: Int, perPage: Int)
+
+  case class GetAllReviewsByGame(steamAppId: Long, page: Int, perPage: Int)
+
   // events
   case class ReviewActorCreated(
-    @JsonDeserialize(contentAs = classOf[Long]) id: Long
+    @JsonDeserialize(contentAs = classOf[Long]) id:         Long,
+    @JsonDeserialize(contentAs = classOf[Long]) authorId:   Long,
+    @JsonDeserialize(contentAs = classOf[Long]) steamAppId: Long
   ) extends CborSerializable
 
   case class ReviewActorDeleted(
     @JsonDeserialize(contentAs = classOf[Long]) id: Long
   ) extends CborSerializable
+
+  // responses
+  case class GetAllReviewsByFilterResponse(page: Int, total: Long, reviews: List[Option[ReviewState]])
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new ReviewManagerActor())
 }
@@ -63,6 +73,26 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
     if (lastSequenceNr % reviewManagerSnapshotInterval == 0 && lastSequenceNr != 0)
       saveSnapshot(reviewManagerState)
 
+  def getReviewInfoResponseByFilter(
+    filteredReviews: Iterable[ReviewController],
+    id:              Long,
+    page:            Int,
+    perPage:         Int
+  ): Future[Iterable[Option[ReviewState]]] = {
+    Future.traverse(
+      filteredReviews.slice(page * perPage, page * perPage + perPage)
+    ) { reviewController =>
+      (reviewController.actor ? GetReviewInfo(id)).mapTo[GetReviewInfoResponse].map {
+        case GetReviewInfoResponse(maybeReview) =>
+          maybeReview match {
+            case Success(review) => Some(review)
+
+            case Failure(_) => None
+          }
+      }
+    }
+  }
+
   override def receiveCommand: Receive = {
     case CreateReview(review) =>
       val steamReviewId    = reviewManagerState.reviewCount
@@ -71,9 +101,9 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
         ReviewActor.props(steamReviewId),
         reviewActorName
       )
-      val controlledReview = ReviewController(reviewActor)
+      val controlledReview = ReviewController(reviewActor, review.authorId, review.steamAppId)
 
-      persist(ReviewActorCreated(steamReviewId)) { _ =>
+      persist(ReviewActorCreated(steamReviewId, review.authorId, review.steamAppId)) { _ =>
         reviewManagerState = reviewManagerState.copy(
           reviewCount = reviewManagerState.reviewCount + 1,
           reviews = reviewManagerState.reviews.addOne(steamReviewId -> controlledReview)
@@ -89,6 +119,42 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
         reviewManagerState.reviews(id).actor.forward(getCommand)
       else
         sender() ! GetReviewInfoResponse(notFoundExceptionCreator(id))
+
+    case GetAllReviewsByAuthor(authorId, page, perPage) =>
+      val filteredReviews = reviewManagerState.reviews.values.filter(_.userId == authorId)
+      val replyTo         = sender()
+
+      val paginatedReviews = getReviewInfoResponseByFilter(filteredReviews, authorId, page, perPage)
+
+      paginatedReviews.onComplete {
+        case Success(value) =>
+          log.info(s"got $value")
+          replyTo ! Success(GetAllReviewsByFilterResponse(page, filteredReviews.size, value.toList))
+
+        case Failure(exception) =>
+          exception.printStackTrace()
+          replyTo ! Failure(
+            new RuntimeException("There was a failure while trying to extract all the reviews from this user, please try again later.")
+          )
+      }
+
+    case GetAllReviewsByGame(steamAppId, page, perPage) =>
+      val filteredReviews = reviewManagerState.reviews.values.filter(_.steamAppId == steamAppId)
+      val replyTo         = sender()
+
+      val paginatedReviews = getReviewInfoResponseByFilter(filteredReviews, steamAppId, page, perPage)
+
+      paginatedReviews.onComplete {
+        case Success(value) =>
+          log.info(s"got $value")
+          replyTo ! Success(GetAllReviewsByFilterResponse(page, filteredReviews.size, value.toList))
+
+        case Failure(exception) =>
+          exception.printStackTrace()
+          replyTo ! Failure(
+            new RuntimeException("There was a failure while trying to extract all the reviews of this game, please try again later.")
+          )
+      }
 
     case updateCommand @ UpdateReview(review) =>
       if (isReviewAvailable(review.reviewId))
@@ -116,9 +182,9 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           ReviewActor.props(steamReviewId),
           createActorName(steamReviewId)
         )
-        val controlledReview = ReviewController(reviewActor)
+        val controlledReview = ReviewController(reviewActor, review.authorId, review.steamAppId)
 
-        persist(ReviewActorCreated(steamReviewId)) { _ =>
+        persist(ReviewActorCreated(steamReviewId, review.authorId, review.steamAppId)) { _ =>
           log.info("Review created {} with data {}", steamReviewId, review)
           reviewManagerState = reviewManagerState.copy(
             reviewManagerState.reviewCount + 1,
@@ -143,7 +209,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
   }
 
   override def receiveRecover: Receive = {
-    case ReviewActorCreated(steamReviewId) =>
+    case ReviewActorCreated(steamReviewId, authorId, steamAppId) =>
       val reviewActorName = createActorName(steamReviewId)
       val reviewActor     = context.child(reviewActorName)
         .getOrElse(
@@ -153,7 +219,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
           )
         )
 
-      val controlledReview = ReviewController(reviewActor)
+      val controlledReview = ReviewController(reviewActor, authorId, steamAppId)
 
       reviewManagerState = reviewManagerState.copy(
         reviewCount = steamReviewId + 1,
