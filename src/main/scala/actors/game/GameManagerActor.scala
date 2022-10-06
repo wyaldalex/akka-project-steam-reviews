@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.util.{ Failure, Success, Try }
+import scala.util.Success
 
 object GameManagerActor {
 
@@ -63,8 +63,8 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   def isGameAvailable(id: Long): Boolean =
     gameManagerState.games.contains(id) && !gameManagerState.games(id).isDisabled
 
-  def notFoundExceptionCreator[T](id: Long): Try[T] =
-    Failure(NotFoundException(s"A game with the id $id couldn't be found"))
+  def notFoundExceptionCreator[T](id: Long): Either[String, T] =
+    Left(s"A game with the id $id couldn't be found")
 
   def tryToSaveSnapshot(): Unit =
     if (lastSequenceNr % gameManagerSnapshotInterval == 0 && lastSequenceNr != 0)
@@ -74,7 +74,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
   override def receiveCommand: Receive = {
     case createCommand @ CreateGame(steamAppName) =>
       if (gameAlreadyExists(steamAppName))
-        sender() ! GameCreatedResponse(Failure(GameAlreadyExistsException("A game with this name already exists.")))
+        sender() ! Left("A game with this name already exists.")
       else {
         val steamGameId    = gameManagerState.gameCount
         val gameActorName  = createActorName(steamGameId)
@@ -100,13 +100,13 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       if (isGameAvailable(id))
         gameManagerState.games(id).actor.forward(getCommand)
       else
-        sender() ! GetGameInfoResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case updateCommand @ UpdateName(id, newName) =>
       if (isGameAvailable(id))
         (gameManagerState.games(id).actor ? updateCommand).mapTo[GameUpdatedResponse].pipeTo(sender()).andThen {
-          case Success(gameUpdatedResponse) => gameUpdatedResponse.maybeGame match {
-            case Success(_) =>
+          case Success(gameUpdatedResponse) => gameUpdatedResponse match {
+            case Right(_) =>
               persist(GameActorUpdated(id, newName)) { _ =>
                 gameManagerState.games(id).name = newName
 
@@ -119,8 +119,7 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
           case _ =>
         }
       else
-        sender() ! GetGameInfoResponse(notFoundExceptionCreator(id))
-
+        sender() ! notFoundExceptionCreator(id)
 
     case DeleteGame(id) =>
       if (isGameAvailable(id))
@@ -130,10 +129,10 @@ class GameManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
           tryToSaveSnapshot()
 
-          sender() ! GameDeletedResponse(Success(true))
+          sender() ! Right(true)
         }
       else
-        sender() ! GameDeletedResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case CreateGameFromCSV(GameState(steamAppId, steamAppName)) =>
       if (!gameManagerState.games.contains(steamAppId)) {

@@ -7,8 +7,6 @@ import akka.actor.Props
 import akka.persistence.PersistentActor
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
-import scala.util.{ Failure, Success, Try }
-
 object UserActor {
   // state
   case class UserState(
@@ -44,17 +42,17 @@ object UserActor {
 
 
   // responses
-  case class UserCreatedResponse(id: Try[Long])
+  type UserCreatedResponse = Either[String, Long]
 
-  case class UserUpdatedResponse(maybeAccount: Try[UserState])
+  type UserUpdatedResponse = Either[String, UserState]
 
-  case class GetUserInfoResponse(maybeAccount: Try[UserState])
+  type GetUserInfoResponse = Either[String, UserState]
 
-  case class UserDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
+  type UserDeletedResponse = Either[String, Boolean]
 
-  case class AddedOneReviewResponse(wasSuccess: Try[Boolean])
+  type AddedOneReviewResponse = Either[String, Boolean]
 
-  case class RemovedOneReviewResponse(wasSuccess: Try[Boolean])
+  type RemovedOneReviewResponse = Either[String, Boolean]
 
 
   def props(userId: Long): Props = Props(new UserActor(userId))
@@ -82,18 +80,17 @@ class UserActor(userId: Long) extends PersistentActor {
 
       persist(UserCreated(UserState(id, Some(name), numGamesOwned, numReviews))) { event =>
         state = event.user
-        sender() ! UserCreatedResponse(Success(id))
+        sender() ! Right(id)
       }
 
     case command @ UpdateUser(_, newName, _, _) =>
       if (newName == state.name)
-        sender() ! UserUpdatedResponse(
-          Failure(new IllegalArgumentException("The new name cannot be equal to the previous one."))
-        )
+        sender() ! Left("The new name cannot be equal to the previous one.")
+
       else
         persist(UserUpdated(updateUser(command))) { event =>
           state = event.user
-          sender() ! UserUpdatedResponse(Success(state))
+          sender() ! Right(state)
         }
 
     case AddOneReview(_) =>
@@ -101,7 +98,7 @@ class UserActor(userId: Long) extends PersistentActor {
 
       persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
         state = event.user
-        sender() ! AddedOneReviewResponse(Success(true))
+        sender() ! Right(true)
       }
 
     case RemoveOneReview(_) =>
@@ -109,11 +106,11 @@ class UserActor(userId: Long) extends PersistentActor {
 
       persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
         state = event.user
-        sender() ! RemovedOneReviewResponse(Success(true))
+        sender() ! Right(true)
       }
 
     case GetUserInfo(_) =>
-      sender() ! GetUserInfoResponse(Success(state))
+      sender() ! Right(state)
 
   }
 

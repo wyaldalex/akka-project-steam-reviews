@@ -11,7 +11,6 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
 import scala.concurrent.Future
-import scala.util.{ Failure, Success }
 
 case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
 
@@ -46,13 +45,13 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
           post {
             entity(as[CreateGameRequest]) { game =>
               onSuccess(createGameAction(game)) {
-                case GameCreatedResponse(Success(steamAppId)) =>
+                case Right(steamAppId) =>
                   respondWithHeader(Location(s"/games/$steamAppId")) {
                     complete(StatusCodes.Created)
                   }
 
-                case GameCreatedResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             }
           }
@@ -61,27 +60,27 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
           concat(
             get {
               onSuccess(getGameInfoAction(steamAppId)) {
-                case GetGameInfoResponse(Success(state)) =>
+                case Right(state) =>
                   complete(state)
 
-                case GetGameInfoResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             },
             patch {
               entity(as[UpdateGameRequest]) { updateName =>
                 onSuccess(updateNameAction(steamAppId, updateName)) {
-                  case GameUpdatedResponse(Success(state)) =>
+                  case Right(state) =>
                     complete(state)
 
-                  case GameUpdatedResponse(Failure(exception)) =>
-                    throw exception
+                  case Left(exception) =>
+                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
                 }
               }
             },
             delete {
               onSuccess(deleteGameAction(steamAppId)) {
-                case GameDeletedResponse(Success(_)) =>
+                case Right(_) =>
                   complete(
                     Response(
                       statusCode = StatusCodes.OK.intValue,
@@ -89,8 +88,8 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
                     )
                   )
 
-                case GameDeletedResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             }
           )

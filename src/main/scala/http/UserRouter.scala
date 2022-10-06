@@ -11,7 +11,6 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
 import scala.concurrent.Future
-import scala.util.{ Failure, Success }
 
 case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) extends Directives {
 
@@ -50,13 +49,13 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
           post {
             entity(as[CreateUserRequest]) { game =>
               onSuccess(createUserAction(game)) {
-                case UserCreatedResponse(Success(steamUserId)) =>
+                case Right(steamUserId) =>
                   respondWithHeader(Location(s"/users/$steamUserId")) {
                     complete(StatusCodes.Created)
                   }
 
-                case UserCreatedResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             }
           }
@@ -65,28 +64,27 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
           concat(
             get {
               onSuccess(getUserInfoAction(steamUserId)) {
-                case GetUserInfoResponse(Success(state)) =>
-                  println(state)
+                case Right(state) =>
                   complete(state)
 
-                case GetUserInfoResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             },
             patch {
               entity(as[UpdateUserRequest]) { updateName =>
                 onSuccess(updateNameAction(steamUserId, updateName)) {
-                  case UserUpdatedResponse(Success(state)) =>
+                  case Right(state) =>
                     complete(state)
 
-                  case UserUpdatedResponse(Failure(exception)) =>
-                    throw exception
+                  case Left(exception) =>
+                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
                 }
               }
             },
             delete {
               onSuccess(deleteUserAction(steamUserId)) {
-                case UserDeletedResponse(Success(_)) =>
+                case Right(_) =>
                   complete(
                     Response(
                       statusCode = StatusCodes.OK.intValue,
@@ -94,8 +92,8 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
                     )
                   )
 
-                case UserDeletedResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             }
           )

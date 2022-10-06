@@ -6,8 +6,6 @@ import util.CborSerializable
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 
-import scala.util.{ Failure, Success, Try }
-
 object GameActor {
   // state
 
@@ -33,13 +31,13 @@ object GameActor {
 
 
   //responses
-  case class GameCreatedResponse(steamAppId: Try[Long])
+  type GameCreatedResponse = Either[String, Long]
 
-  case class GameUpdatedResponse(maybeGame: Try[GameState])
+  type GameUpdatedResponse = Either[String, GameState]
 
-  case class GetGameInfoResponse(maybeGame: Try[GameState])
+  type GetGameInfoResponse = Either[String, GameState]
 
-  case class GameDeletedResponse(gameWasDeletedSuccessfully: Try[Boolean])
+  type GameDeletedResponse = Either[String, Boolean]
 
 
   def props(userId: Long): Props = Props(new GameActor(userId))
@@ -61,23 +59,22 @@ class GameActor(steamAppId: Long)
 
       persist(GameCreated(GameState(id, name))) { _ =>
         state = state.copy(steamAppName = name)
-        sender() ! GameCreatedResponse(Success(id))
+        sender() ! Right(id)
       }
 
     case UpdateName(_, newName) =>
       if (newName == state.steamAppName)
-        sender() ! GameUpdatedResponse(
-          Failure(new IllegalArgumentException("The new name cannot be equal to the previous one."))
-        )
+        sender() ! Left("The new name cannot be equal to the previous one.")
+
       else
         persist(GameUpdated(newName)) { _ =>
           state = state.copy(steamAppName = newName)
 
-          sender() ! GameUpdatedResponse(Success(state))
+          sender() ! Right(state)
         }
 
     case GetGameInfo(_) =>
-      sender() ! GetGameInfoResponse(Success(state))
+      sender() ! Right(state)
 
   }
 

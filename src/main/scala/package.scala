@@ -1,28 +1,19 @@
 package dev.galre.josue
 
+import akka.http.scaladsl.model.StatusCode
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.{ Directive, StandardRoute }
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import io.circe.generic.auto._
+
 package object akkaProject {
-
-  case class NotFoundException(message: String) extends RuntimeException(message)
-
-  case class UpdateFailedException(message: String) extends RuntimeException(message)
-
-  case class GameAlreadyExistsException(message: String) extends RuntimeException(message)
-
-  case class AlreadyExistsException(message: String) extends RuntimeException(message)
 
   case class Response(statusCode: Int, message: Option[String] = None)
 
-  def intToBigInt(value: Int): BigInt = BigInt(value)
+  def completeWithFailure[T <: StatusCode](statusCode: T, message: Option[String]): StandardRoute =
+    complete(statusCode, Response(statusCode.intValue(), message))
 
-  def longToBigInt(value: Long): BigInt = BigInt(value)
-
-  def doubleToBigDecimal(value: Int): BigInt = BigInt(value)
-
-  def optionIntToOptionBigInt(value: Option[Int]): Option[BigInt] = value.flatMap(value => Option(BigInt(value)))
-
-  def optionLongToOptionBigInt(value: Option[Long]): Option[BigInt] = value.flatMap(value => Option(BigInt(value)))
-
-  def optionDoubleToOptionBigDecimal(value: Option[Double]): Option[BigDecimal] = value
-    .flatMap(value => Option(BigDecimal(value)))
+  def paginationParameters: Directive[(Int, Int)] =
+    parameters("page".as[Int].withDefault(0), "perPage".as[Int].withDefault(50))
 
 }

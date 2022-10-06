@@ -11,7 +11,6 @@ import akka.util.Timeout
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.util.{ Failure, Success, Try }
 
 
 object UserManagerActor {
@@ -53,8 +52,8 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
 
   def createActorName(steamUserId: Long): String = s"steam-user-$steamUserId"
 
-  def notFoundExceptionCreator[T](id: Long): Try[T] =
-    Failure(NotFoundException(s"An user with the id $id couldn't be found"))
+  def notFoundExceptionCreator[T](id: Long): Either[String, T] =
+    Left(s"An user with the id $id couldn't be found")
 
   def tryToSaveSnapshot(): Unit =
     if (lastSequenceNr % userManagerSnapshotInterval == 0 && lastSequenceNr != 0)
@@ -83,25 +82,25 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
       if (isUserAvailable(id))
         userManagerState.users(id).actor.forward(getCommand)
       else
-        sender() ! GetUserInfoResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case updateCommand @ UpdateUser(id, _, _, _) =>
       if (isUserAvailable(id))
         userManagerState.users(id).actor.forward(updateCommand)
       else
-        sender() ! UserUpdatedResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case addOneReviewCommand @ AddOneReview(id) =>
       if (isUserAvailable(id))
         userManagerState.users(id).actor.forward(addOneReviewCommand)
       else
-        sender() ! AddedOneReviewResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case removeOneReviewCommand @ RemoveOneReview(id) =>
       if (isUserAvailable(id))
         userManagerState.users(id).actor.forward(removeOneReviewCommand)
       else
-        sender() ! RemovedOneReviewResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case DeleteUser(id) =>
       if (isUserAvailable(id))
@@ -109,10 +108,10 @@ class UserManagerActor(implicit timeout: Timeout, executionContext: ExecutionCon
           userManagerState.users(id).isDisabled = true
           context.stop(userManagerState.users(id).actor)
 
-          sender() ! UserDeletedResponse(Success(true))
+          sender() ! Right(true)
         }
       else
-        sender() ! UserDeletedResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case CreateUserFromCSV(UserState(userId, name, numGamesOwned, numReviews)) =>
       if (!userManagerState.users.contains(userId)) {

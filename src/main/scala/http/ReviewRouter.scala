@@ -8,14 +8,14 @@ import actors.user.UserActor._
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
-import akka.http.scaladsl.server.{ Directive, Directives, Route }
+import akka.http.scaladsl.server.{ Directives, Route }
 import akka.pattern.ask
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 case class ReviewRouter(
   reviewManagerActor: ActorRef,
@@ -133,27 +133,24 @@ case class ReviewRouter(
   private def deleteReviewAction(id: Long): Future[ReviewDeletedResponse] =
     (reviewManagerActor ? DeleteReview(id)).mapTo[ReviewDeletedResponse]
 
-  private def getAllReviewsByUser(id: Long, page: Int, perPage: Int): Future[Try[GetAllReviewsByFilterResponse]] =
-    (reviewManagerActor ? GetAllReviewsByAuthor(id, page, perPage)).mapTo[Try[GetAllReviewsByFilterResponse]]
+  private def getAllReviewsByUser(id: Long, page: Int, perPage: Int): Future[GetAllReviewsByFilterResponse] =
+    (reviewManagerActor ? GetAllReviewsByAuthor(id, page, perPage)).mapTo[GetAllReviewsByFilterResponse]
 
-  private def getAllReviewsByGame(id: Long, page: Int, perPage: Int): Future[Try[GetAllReviewsByFilterResponse]] =
-    (reviewManagerActor ? GetAllReviewsByGame(id, page, perPage)).mapTo[Try[GetAllReviewsByFilterResponse]]
+  private def getAllReviewsByGame(id: Long, page: Int, perPage: Int): Future[GetAllReviewsByFilterResponse] =
+    (reviewManagerActor ? GetAllReviewsByGame(id, page, perPage)).mapTo[GetAllReviewsByFilterResponse]
 
   private def checkIfAuthorIsValid(authorId: Long)(routeIfValid: Route): Route = {
     val userInfoResponse = (userManagerActor ? GetUserInfo(authorId)).mapTo[GetUserInfoResponse]
 
     onSuccess(
       userInfoResponse.map {
-        case GetUserInfoResponse(maybeAccount) =>
-          maybeAccount match {
-            case Success(_) =>
-              Success(true)
+        case Right(_) =>
+          Success(true)
 
-            case Failure(_) =>
-              Failure(
-                new IllegalArgumentException("The authorId entered is invalid, please select a valid user.")
-              )
-          }
+        case Left(_) =>
+          Failure(
+            new IllegalArgumentException("The authorId entered is invalid, please select a valid user.")
+          )
       }
     ) {
       case Success(_) =>
@@ -164,21 +161,19 @@ case class ReviewRouter(
     }
   }
 
+
   private def checkIfGameIsValid(authorId: Long)(routeIfValid: Route): Route = {
     val gameInfoResponse = (gameManagerActor ? GetGameInfo(authorId)).mapTo[GetGameInfoResponse]
 
     onSuccess(
       gameInfoResponse.map {
-        case GetGameInfoResponse(maybeGame) =>
-          maybeGame match {
-            case Success(_) =>
-              Success(true)
+        case Right(_) =>
+          Success(true)
 
-            case Failure(_) =>
-              Failure(
-                new IllegalArgumentException("The steamAppId is invalid, please select a valid game.")
-              )
-          }
+        case Left(_) =>
+          Failure(
+            new IllegalArgumentException("The steamAppId is invalid, please select a valid game.")
+          )
       }
     ) {
       case Success(_) =>
@@ -199,27 +194,23 @@ case class ReviewRouter(
         game <- gameInfoResponse
       } yield {
         (game, user) match {
-          case (GetGameInfoResponse(maybeGame), GetUserInfoResponse(maybeAccount)) =>
+          case (Right(_), Right(_)) =>
+            Success(true)
 
-            (maybeAccount, maybeGame) match {
-              case (Success(_), Success(_)) =>
-                Success(true)
+          case (Left(_), _) =>
+            Failure(
+              new IllegalArgumentException("The authorId entered is invalid, please select a valid user.")
+            )
 
-              case (Failure(_), _) =>
-                Failure(
-                  new IllegalArgumentException("The authorId entered is invalid, please select a valid user.")
-                )
+          case (_, Left(_)) =>
+            Failure(
+              new IllegalArgumentException("The steamAppId is invalid, please select a valid game.")
+            )
 
-              case (_, Failure(_)) =>
-                Failure(
-                  new IllegalArgumentException("The steamAppId is invalid, please select a valid game.")
-                )
-
-              case (_, _) =>
-                Failure(
-                  new IllegalArgumentException("Both authorId and steamAppId are invalid, please check and try again.")
-                )
-            }
+          case (_, _) =>
+            Failure(
+              new IllegalArgumentException("Both authorId and steamAppId are invalid, please check and try again.")
+            )
         }
       }
     } {
@@ -231,9 +222,6 @@ case class ReviewRouter(
     }
   }
 
-  private def paginationParameters: Directive[(Int, Int)] =
-    parameters("page".as[Int].withDefault(0), "perPage".as[Int].withDefault(50))
-
   val routes: Route =
     pathPrefix("reviews") {
       concat(
@@ -242,13 +230,20 @@ case class ReviewRouter(
             concat(
               path("user" / LongNumber) { authorId =>
                 paginationParameters { (page, perPage) =>
+
                   checkIfAuthorIsValid(authorId) {
                     onComplete(getAllReviewsByUser(authorId, page, perPage)) {
-                      case Success(reviews) =>
-                        complete(reviews)
+                      case Success(maybeContent) =>
+                        maybeContent match {
+                          case Right(allReviews) =>
+                            complete(allReviews)
 
-                      case Failure(exception) =>
-                        throw exception
+                          case Left(failure) =>
+                            completeWithFailure(StatusCodes.BadRequest, Some(failure))
+                        }
+
+                      case Failure(_) =>
+                        completeWithFailure(StatusCodes.BadRequest, None)
                     }
                   }
                 }
@@ -257,11 +252,17 @@ case class ReviewRouter(
                 paginationParameters { (page, perPage) =>
                   checkIfGameIsValid(steamAppId) {
                     onComplete(getAllReviewsByGame(steamAppId, page, perPage)) {
-                      case Success(reviews) =>
-                        complete(reviews)
+                      case Success(maybeContent) =>
+                        maybeContent match {
+                          case Right(allReviews) =>
+                            complete(allReviews)
 
-                      case Failure(exception) =>
-                        throw exception
+                          case Left(exception) =>
+                            completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                        }
+
+                      case Failure(_) =>
+                        completeWithFailure(StatusCodes.BadRequest, None)
                     }
                   }
                 }
@@ -273,34 +274,34 @@ case class ReviewRouter(
           concat(
             get {
               onSuccess(getReviewInfoAction(steamReviewId)) {
-                case GetReviewInfoResponse(Success(state)) =>
+                case Right(state) =>
                   complete(state)
 
-                case GetReviewInfoResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             },
             patch {
               entity(as[UpdateReviewRequest]) { updateName =>
                 onSuccess(updateNameAction(steamReviewId, updateName)) {
-                  case ReviewUpdatedResponse(Success(state)) =>
+                  case Right(state) =>
                     complete(state)
 
-                  case ReviewUpdatedResponse(Failure(exception)) =>
-                    throw exception
+                  case Left(exception) =>
+                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
                 }
               }
             },
             delete {
               onSuccess(getReviewInfoAction(steamReviewId)) {
-                case GetReviewInfoResponse(Success(state)) =>
+                case Right(state) =>
                   val authorId = state.authorId
 
                   onSuccess(deleteReviewAction(steamReviewId)) {
-                    case ReviewDeletedResponse(Success(_)) =>
+                    case Right(_) =>
 
                       onSuccess(deleteOneReviewAction(authorId)) {
-                        case RemovedOneReviewResponse(Success(_)) =>
+                        case Right(_) =>
                           complete(
                             Response(
                               statusCode = StatusCodes.OK.intValue,
@@ -308,16 +309,16 @@ case class ReviewRouter(
                             )
                           )
 
-                        case RemovedOneReviewResponse(Failure(exception)) =>
-                          throw exception
+                        case Left(exception) =>
+                          completeWithFailure(StatusCodes.BadRequest, Some(exception))
                       }
 
-                    case ReviewDeletedResponse(Failure(exception)) =>
-                      throw exception
+                    case Left(exception) =>
+                      completeWithFailure(StatusCodes.BadRequest, Some(exception))
                   }
 
-                case GetReviewInfoResponse(Failure(exception)) =>
-                  throw exception
+                case Left(exception) =>
+                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
               }
             }
           )
@@ -330,19 +331,19 @@ case class ReviewRouter(
 
               checkIfAuthorAndGameAreValid(steamAppId, authorId) {
                 onSuccess(createReviewAction(review)) {
-                  case ReviewCreatedResponse(Success(steamReviewId)) =>
+                  case Right(steamReviewId) =>
                     onSuccess(addOneReviewAction(authorId)) {
-                      case AddedOneReviewResponse(Success(_)) =>
+                      case Right(_) =>
                         respondWithHeader(Location(s"/reviews/$steamReviewId")) {
                           complete(StatusCodes.Created)
                         }
 
-                      case AddedOneReviewResponse(Failure(exception)) =>
-                        throw exception
+                      case Left(exception) =>
+                        completeWithFailure(StatusCodes.BadRequest, Some(exception))
                     }
 
-                  case ReviewCreatedResponse(Failure(exception)) =>
-                    throw exception
+                  case Left(exception) =>
+                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
                 }
               }
             }

@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 
 object ReviewManagerActor {
@@ -46,7 +46,9 @@ object ReviewManagerActor {
   ) extends CborSerializable
 
   // responses
-  case class GetAllReviewsByFilterResponse(perPage: Int, reviews: List[Option[ReviewState]])
+  case class ReviewsByFilterContent(perPage: Int, reviews: List[Option[ReviewState]])
+
+  type GetAllReviewsByFilterResponse = Either[String, ReviewsByFilterContent]
 
   def props(implicit timeout: Timeout, executionContext: ExecutionContext): Props = Props(new ReviewManagerActor())
 }
@@ -67,8 +69,8 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
 
   def createActorName(steamReviewId: Long): String = s"steam-review-$steamReviewId"
 
-  def notFoundExceptionCreator[T](id: Long): Try[T] =
-    Failure(NotFoundException(s"A review with the id $id couldn't be found"))
+  def notFoundExceptionCreator[T](id: Long): Either[String, T] =
+    Left(s"A review with the id $id couldn't be found")
 
   def tryToSaveSnapshot(): Unit =
     if (lastSequenceNr % reviewManagerSnapshotInterval == 0 && lastSequenceNr != 0)
@@ -79,13 +81,11 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       filteredReviews
     ) { reviewController =>
       (reviewController.actor ? GetReviewInfo(0)).mapTo[GetReviewInfoResponse].map {
-        case GetReviewInfoResponse(maybeReview) =>
-          maybeReview match {
-            case Success(review) => Some(review)
+        case Right(review) => Some(review)
 
-            case Failure(_) => None
-          }
+        case Left(_) => None
       }
+
     }
   }
 
@@ -131,7 +131,7 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
       if (isReviewAvailable(id))
         reviewManagerState.reviews(id).actor.forward(getCommand)
       else
-        sender() ! GetReviewInfoResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case GetAllReviewsByAuthor(authorId, page, perPage) =>
       val filteredRecursiveReviews = filterRecursive(_.userId == authorId, page, perPage)
@@ -141,13 +141,11 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
 
       paginatedReviews.onComplete {
         case Success(value) =>
-          replyTo ! Success(GetAllReviewsByFilterResponse(perPage, value.toList))
+          replyTo ! Right(ReviewsByFilterContent(perPage, value.toList))
 
         case Failure(exception) =>
           exception.printStackTrace()
-          replyTo ! Failure(
-            new RuntimeException("There was a failure while trying to extract all the reviews from this user, please try again later.")
-          )
+          replyTo ! Left("There was a failure while trying to extract all the reviews from this user, please try again later.")
       }
 
     case GetAllReviewsByGame(steamAppId, page, perPage) =>
@@ -158,20 +156,19 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
 
       paginatedReviews.onComplete {
         case Success(value) =>
-          replyTo ! Success(GetAllReviewsByFilterResponse(perPage, value.toList))
+          replyTo ! Right(ReviewsByFilterContent(perPage, value.toList))
 
         case Failure(exception) =>
           exception.printStackTrace()
-          replyTo ! Failure(
-            new RuntimeException("There was a failure while trying to extract all the reviews of this game, please try again later.")
-          )
+          replyTo ! Left("There was a failure while trying to extract all the reviews of this game, please try again later.")
+
       }
 
     case updateCommand @ UpdateReview(review) =>
       if (isReviewAvailable(review.reviewId))
         reviewManagerState.reviews(review.reviewId).actor.forward(updateCommand)
       else
-        sender() ! ReviewUpdatedResponse(notFoundExceptionCreator(review.reviewId))
+        sender() ! notFoundExceptionCreator(review.reviewId)
 
     case DeleteReview(id) =>
       if (isReviewAvailable(id))
@@ -181,10 +178,10 @@ class ReviewManagerActor(implicit timeout: Timeout, executionContext: ExecutionC
 
           //          tryToSaveSnapshot()
 
-          sender() ! ReviewDeletedResponse(Success(true))
+          sender() ! Right(true)
         }
       else
-        sender() ! ReviewDeletedResponse(notFoundExceptionCreator(id))
+        sender() ! notFoundExceptionCreator(id)
 
     case CreateReviewFromCSV(review) =>
       val steamReviewId = reviewManagerState.reviewCount

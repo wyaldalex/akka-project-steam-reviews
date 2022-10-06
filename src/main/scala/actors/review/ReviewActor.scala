@@ -7,8 +7,6 @@ import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
-import scala.util.{ Success, Try }
-
 object ReviewActor {
   // state
   case class ReviewState(
@@ -50,13 +48,13 @@ object ReviewActor {
 
 
   // responses
-  case class ReviewCreatedResponse(reviewId: Try[Long])
+  type ReviewCreatedResponse = Either[String, Long]
 
-  case class ReviewUpdatedResponse(maybeReview: Try[ReviewState])
+  type ReviewUpdatedResponse = Either[String, ReviewState]
 
-  case class GetReviewInfoResponse(maybeReview: Try[ReviewState])
+  type GetReviewInfoResponse = Either[String, ReviewState]
 
-  case class ReviewDeletedResponse(accountWasDeletedSuccessfully: Try[Boolean])
+  type ReviewDeletedResponse = Either[String, Boolean]
 
   def props(reviewId: Long): Props = Props(new ReviewActor(reviewId))
 
@@ -192,14 +190,14 @@ class ReviewActor(reviewId: Long) extends PersistentActor
       val timestampUpdated = timestampCreated
 
       if (review.review.isEmpty)
-        sender() ! new IllegalArgumentException("You need to provide a valid review.")
+        sender() ! Left("You need to provide a valid review.")
 
       persist(
         ReviewCreated(review.copy(reviewId = id, timestampCreated = timestampCreated, timestampUpdated = timestampUpdated))
       ) { event =>
         state = event.review
 
-        sender() ! ReviewCreatedResponse(Success(id))
+        sender() ! Right(id)
       }
 
     case UpdateReview(review) =>
@@ -207,11 +205,11 @@ class ReviewActor(reviewId: Long) extends PersistentActor
         val newState = event.review
         state = newState
 
-        sender() ! ReviewUpdatedResponse(Success(newState))
+        sender() ! Right(newState)
       }
 
     case GetReviewInfo(_) =>
-      sender() ! GetReviewInfoResponse(Success(state))
+      sender() ! Right(state)
   }
 
   override def receiveRecover: Receive = {
