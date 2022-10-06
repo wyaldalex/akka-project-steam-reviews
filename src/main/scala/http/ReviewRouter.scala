@@ -236,14 +236,14 @@ case class ReviewRouter(
                       case Success(maybeContent) =>
                         maybeContent match {
                           case Right(allReviews) =>
-                            complete(allReviews)
+                            completeWithPayload(payload = allReviews)
 
                           case Left(failure) =>
-                            completeWithFailure(StatusCodes.BadRequest, Some(failure))
+                            completeWithMessage(StatusCodes.BadRequest, Some(failure))
                         }
 
                       case Failure(_) =>
-                        completeWithFailure(StatusCodes.BadRequest, None)
+                        completeWithMessage(StatusCodes.BadRequest, None)
                     }
                   }
                 }
@@ -258,11 +258,11 @@ case class ReviewRouter(
                             complete(allReviews)
 
                           case Left(exception) =>
-                            completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                            completeWithMessage(StatusCodes.BadRequest, Some(exception))
                         }
 
                       case Failure(_) =>
-                        completeWithFailure(StatusCodes.BadRequest, None)
+                        completeWithMessage(StatusCodes.BadRequest, None)
                     }
                   }
                 }
@@ -278,7 +278,7 @@ case class ReviewRouter(
                   complete(state)
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             },
             patch {
@@ -288,7 +288,7 @@ case class ReviewRouter(
                     complete(state)
 
                   case Left(exception) =>
-                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                    completeWithMessage(StatusCodes.BadRequest, Some(exception))
                 }
               }
             },
@@ -302,23 +302,18 @@ case class ReviewRouter(
 
                       onSuccess(deleteOneReviewAction(authorId)) {
                         case Right(_) =>
-                          complete(
-                            Response(
-                              statusCode = StatusCodes.OK.intValue,
-                              message = Some("Review was deleted successfully.")
-                            )
-                          )
+                          completeWithMessage(StatusCodes.OK, Some("Review was deleted successfully."))
 
                         case Left(exception) =>
-                          completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                          completeWithMessage(StatusCodes.BadRequest, Some(exception))
                       }
 
                     case Left(exception) =>
-                      completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                      completeWithMessage(StatusCodes.BadRequest, Some(exception))
                   }
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             }
           )
@@ -339,11 +334,11 @@ case class ReviewRouter(
                         }
 
                       case Left(exception) =>
-                        completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                        completeWithMessage(StatusCodes.BadRequest, Some(exception))
                     }
 
                   case Left(exception) =>
-                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                    completeWithMessage(StatusCodes.BadRequest, Some(exception))
                 }
               }
             }

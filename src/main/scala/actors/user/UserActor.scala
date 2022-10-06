@@ -3,7 +3,7 @@ package actors.user
 
 import util.CborSerializable
 
-import akka.actor.Props
+import akka.actor.{ ActorRef, Props }
 import akka.persistence.PersistentActor
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
@@ -74,6 +74,12 @@ class UserActor(userId: Long) extends PersistentActor {
       if (newData.numReviews.isEmpty) state.numReviews else newData.numReviews,
     )
 
+  def persistReviewCountChange(replyTo: ActorRef, newNumReviews: Option[Int]): Unit =
+    persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
+      state = event.user
+      replyTo ! Right(true)
+    }
+
   override def receiveCommand: Receive = {
     case CreateUser(name, numGamesOwned, numReviews) =>
       val id = state.userId
@@ -96,18 +102,12 @@ class UserActor(userId: Long) extends PersistentActor {
     case AddOneReview(_) =>
       val newNumReviews = for (current <- state.numReviews) yield current + 1
 
-      persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
-        state = event.user
-        sender() ! Right(true)
-      }
+      persistReviewCountChange(sender(), newNumReviews)
 
     case RemoveOneReview(_) =>
       val newNumReviews = for (current <- state.numReviews) yield current - 1
 
-      persist(UserUpdated(state.copy(numReviews = newNumReviews))) { event =>
-        state = event.user
-        sender() ! Right(true)
-      }
+      persistReviewCountChange(sender(), newNumReviews)
 
     case GetUserInfo(_) =>
       sender() ! Right(state)

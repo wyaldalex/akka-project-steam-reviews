@@ -55,7 +55,7 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
                   }
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             }
           }
@@ -65,35 +65,30 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
             get {
               onSuccess(getUserInfoAction(steamUserId)) {
                 case Right(state) =>
-                  complete(state)
+                  completeWithPayload(payload = state)
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             },
             patch {
-              entity(as[UpdateUserRequest]) { updateName =>
-                onSuccess(updateNameAction(steamUserId, updateName)) {
+              entity(as[UpdateUserRequest]) { updateUser =>
+                onSuccess(updateNameAction(steamUserId, updateUser)) {
                   case Right(state) =>
-                    complete(state)
+                    completeWithPayload(payload = state)
 
                   case Left(exception) =>
-                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                    completeWithMessage(StatusCodes.BadRequest, Some(exception))
                 }
               }
             },
             delete {
               onSuccess(deleteUserAction(steamUserId)) {
                 case Right(_) =>
-                  complete(
-                    Response(
-                      statusCode = StatusCodes.OK.intValue,
-                      message = Some("UserState was deleted successfully.")
-                    )
-                  )
+                  completeWithMessage(StatusCodes.OK, message = Some("UserState was deleted successfully."))
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             }
           )

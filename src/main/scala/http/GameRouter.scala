@@ -51,7 +51,7 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
                   }
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             }
           }
@@ -61,35 +61,30 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
             get {
               onSuccess(getGameInfoAction(steamAppId)) {
                 case Right(state) =>
-                  complete(state)
+                  completeWithPayload(payload = state)
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             },
             patch {
               entity(as[UpdateGameRequest]) { updateName =>
                 onSuccess(updateNameAction(steamAppId, updateName)) {
                   case Right(state) =>
-                    complete(state)
+                    completeWithPayload(payload = state)
 
                   case Left(exception) =>
-                    completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                    completeWithMessage(StatusCodes.BadRequest, Some(exception))
                 }
               }
             },
             delete {
               onSuccess(deleteGameAction(steamAppId)) {
                 case Right(_) =>
-                  complete(
-                    Response(
-                      statusCode = StatusCodes.OK.intValue,
-                      message = Some("Game was deleted successfully.")
-                    )
-                  )
+                  completeWithMessage(StatusCodes.OK, Some("Game was deleted successfully."))
 
                 case Left(exception) =>
-                  completeWithFailure(StatusCodes.BadRequest, Some(exception))
+                  completeWithMessage(StatusCodes.BadRequest, Some(exception))
               }
             }
           )
