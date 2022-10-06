@@ -65,7 +65,7 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
             get {
               onSuccess(getUserInfoAction(steamUserId)) {
                 case Right(state) =>
-                  completeWithPayload(payload = state)
+                  complete(state)
 
                 case Left(exception) =>
                   completeWithMessage(StatusCodes.BadRequest, Some(exception))
@@ -75,7 +75,7 @@ case class UserRouter(userManagerActor: ActorRef)(implicit timeout: Timeout) ext
               entity(as[UpdateUserRequest]) { updateUser =>
                 onSuccess(updateNameAction(steamUserId, updateUser)) {
                   case Right(state) =>
-                    completeWithPayload(payload = state)
+                    complete(state)
 
                   case Left(exception) =>
                     completeWithMessage(StatusCodes.BadRequest, Some(exception))

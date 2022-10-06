@@ -236,7 +236,7 @@ case class ReviewRouter(
                       case Success(maybeContent) =>
                         maybeContent match {
                           case Right(allReviews) =>
-                            completeWithPayload(payload = allReviews)
+                            complete(StatusCodes.OK, allReviews)
 
                           case Left(failure) =>
                             completeWithMessage(StatusCodes.BadRequest, Some(failure))

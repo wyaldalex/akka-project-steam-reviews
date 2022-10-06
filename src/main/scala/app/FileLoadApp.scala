@@ -28,7 +28,7 @@ object FileLoadApp {
       "json-loader"
     )
 
-    csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews.csv", numberOfElements = 100000)
+    csvLoaderActor ! CSVLoaderActor.LoadCSV("src/main/resources/steam_reviews.csv", numberOfElements = 10)
   }
 
 }

@@ -61,7 +61,7 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
             get {
               onSuccess(getGameInfoAction(steamAppId)) {
                 case Right(state) =>
-                  completeWithPayload(payload = state)
+                  complete(state)
 
                 case Left(exception) =>
                   completeWithMessage(StatusCodes.BadRequest, Some(exception))
@@ -71,7 +71,7 @@ case class GameRouter(gameManagerActor: ActorRef)(implicit timeout: Timeout) ext
               entity(as[UpdateGameRequest]) { updateName =>
                 onSuccess(updateNameAction(steamAppId, updateName)) {
                   case Right(state) =>
-                    completeWithPayload(payload = state)
+                    complete(state)
 
                   case Left(exception) =>
                     completeWithMessage(StatusCodes.BadRequest, Some(exception))
