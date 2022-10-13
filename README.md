@@ -38,7 +38,9 @@ To start the HTTP server use ``HttpApp``
 
 ## API Docs
 
-You can check the API Docs in a Postman Collection:
+You can check the API
+Docs [here](https://www.postman.com/josuegalre/workspace/b94a4f7a-c3e6-4335-81b4-aca8489e6039/documentation/14357878-4809d6b9-cbc1-42bb-9a30-99f9dc126d00)
+or fork the API Docs using Postman:
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/14357878-4809d6b9-cbc1-42bb-9a30-99f9dc126d00?action=collection%2Ffork&collection-url=entityId%3D14357878-4809d6b9-cbc1-42bb-9a30-99f9dc126d00%26entityType%3Dcollection%26workspaceId%3Db94a4f7a-c3e6-4335-81b4-aca8489e6039)
         
