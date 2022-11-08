@@ -2,10 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/project.scala-akka-project-build.iml" filepath="$PROJECT_DIR$/.idea/modules/project.scala-akka-project-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/SteamReviews.iml" filepath="$PROJECT_DIR$/.idea/modules/SteamReviews.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/SteamReviews-build.iml" filepath="$PROJECT_DIR$/.idea/modules/SteamReviews-build.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-akka-project.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-akka-project.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-akka-project-build.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-akka-project-build.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-steam.scala-akka-project.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-steam.scala-akka-project.iml" />
     </modules>
   </component>
 </project>

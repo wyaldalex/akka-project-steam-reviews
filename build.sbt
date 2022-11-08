@@ -2,21 +2,31 @@ ThisBuild / version := "0.1.0"
 
 ThisBuild / scalaVersion := "2.13.9"
 
-val akkaVersion      = "2.6.20"
-val akkaHttpVersion  = "10.2.10"
-val cassandraVersion = "1.0.6"
-val logbackVersion   = "1.3.0"
-val circeVersion     = "0.14.3"
+ThisBuild / scapegoatVersion := "2.0.0"
+
+ThisBuild / scapegoatReports := Seq("xml")
+
+Scapegoat / scalacOptions += "-P:scapegoat:overrideLevels:all=Warning"
+
+val akkaVersion = "2.7.0"
+val akkaHttpVersion = "10.4.0"
+val cassandraVersion = "1.1.0"
+val logbackVersion = "1.3.4"
+val circeVersion = "0.14.3"
 
 ThisBuild / libraryDependencies ++= Seq(
   // Akka actor
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   // Akka streams
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "4.0.0",
+  "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "5.0.0",
   // Akka http
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion,
+  // Akka projections
+  "com.lightbend.akka" %% "akka-projection-core" % "1.3.0",
+  "com.lightbend.akka" %% "akka-projection-eventsourced" % "1.3.0",
+  "com.lightbend.akka" %% "akka-projection-cassandra" % "1.3.0",
   // json serializing
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
@@ -38,14 +48,11 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence-cassandra-launcher" % cassandraVersion % Test,
   // dependencies
   "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "org.scalatest" %% "scalatest" % "3.2.13",
-  "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.8.0",
-  // logback
-  "ch.qos.logback" % "logback-classic" % "1.3.1"
+  "org.scalatest" %% "scalatest" % "3.2.14"
 )
 
 lazy val root = (project in file("."))
   .settings(
-    name := "scala-akka-project",
-    idePackagePrefix := Some("dev.galre.josue.akkaProject")
+    name := "SteamReviews",
+    idePackagePrefix := Some("dev.galre.josue.steamreviews")
   )

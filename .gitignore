@@ -133,6 +133,12 @@ project/plugins/project/
 
 ### Scala ###
 
+### Metals ###
+.metals/
+.bloop/
+project/**/metals.sbt
+
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+iml,scala,sbt,java

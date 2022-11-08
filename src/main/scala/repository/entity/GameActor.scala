@@ -1,37 +1,38 @@
-package dev.galre.josue.akkaProject
-package actors.game
+package dev.galre.josue.steamreviews
+package repository.entity
 
-import util.CborSerializable
+import service.utils.Serializable
 
+import GameActor._
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 
 object GameActor {
   // state
 
-  case class GameState(
-    steamAppId:   Long,
+  final case class GameState(
+    steamAppId: Long,
     steamAppName: String
   )
-    extends CborSerializable
+    extends Serializable
 
   // commands
-  case class CreateGame(steamAppName: String)
+  final case class CreateGame(steamAppName: String)
 
-  case class UpdateName(id: Long, newName: String)
+  final case class UpdateName(id: Long, newName: String)
 
-  case class DeleteGame(id: Long)
+  final case class DeleteGame(id: Long)
 
-  case class GetGameInfo(id: Long)
+  final case class GetGameInfo(id: Long)
 
   // events
-  case class GameCreated(game: GameState) extends CborSerializable
+  final case class GameCreated(game: GameState) extends Serializable
 
-  case class GameUpdated(newName: String) extends CborSerializable
+  final case class GameUpdated(newName: String) extends Serializable
 
 
-  //responses
-  type GameCreatedResponse = Either[String, Long]
+  // responses
+  type GameCreatedResponse = Either[String, GameState]
 
   type GameUpdatedResponse = Either[String, GameState]
 
@@ -47,7 +48,6 @@ class GameActor(steamAppId: Long)
   extends PersistentActor
   with ActorLogging {
 
-  import GameActor._
 
   override def persistenceId: String = s"steam-appid-$steamAppId"
 
@@ -57,21 +57,22 @@ class GameActor(steamAppId: Long)
     case CreateGame(name) =>
       val id = state.steamAppId
 
-      persist(GameCreated(GameState(id, name))) { _ =>
-        state = state.copy(steamAppName = name)
-        sender() ! Right(id)
+      persist(GameCreated(GameState(id, name))) {
+        _ =>
+          state = state.copy(steamAppName = name)
+          sender() ! Right(state)
       }
 
     case UpdateName(_, newName) =>
-      if (newName == state.steamAppName)
+      if (newName == state.steamAppName) {
         sender() ! Left("The new name cannot be equal to the previous one.")
-
-      else
-        persist(GameUpdated(newName)) { _ =>
-          state = state.copy(steamAppName = newName)
-
-          sender() ! Right(state)
+      } else {
+        persist(GameUpdated(newName)) {
+          _ =>
+            state = state.copy(steamAppName = newName)
+            sender() ! Right(state)
         }
+      }
 
     case GetGameInfo(_) =>
       sender() ! Right(state)

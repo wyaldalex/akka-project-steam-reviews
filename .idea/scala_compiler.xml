@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <profile name="sbt 1" modules="scala-akka-project,scala-akka-projectt,scala-steam,scala-steam.scala-akka-project" />
+    <profile name="sbt 1" modules="SteamReviews,scala-akka-project,scala-akka-projectt,scala-steam,scala-steam.scala-akka-project" />
   </component>
 </project>
