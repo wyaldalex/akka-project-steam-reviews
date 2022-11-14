@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/SteamReviews.iml" filepath="$PROJECT_DIR$/.idea/modules/SteamReviews.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/SteamReviews-build.iml" filepath="$PROJECT_DIR$/.idea/modules/SteamReviews-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/akka-project-steam-reviews.SteamReviews.iml" filepath="$PROJECT_DIR$/.idea/modules/akka-project-steam-reviews.SteamReviews.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/project.SteamReviews-build.iml" filepath="$PROJECT_DIR$/.idea/modules/project.SteamReviews-build.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-akka-project.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-akka-project.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/scala-akka-project-build.iml" filepath="$PROJECT_DIR$/.idea/modules/scala-akka-project-build.iml" />
     </modules>

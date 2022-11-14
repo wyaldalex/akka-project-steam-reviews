@@ -48,7 +48,15 @@ ThisBuild / libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence-cassandra-launcher" % cassandraVersion % Test,
   // dependencies
   "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "org.scalatest" %% "scalatest" % "3.2.14"
+  "org.scalatest" %% "scalatest" % "3.2.14",
+
+  //Extra for testing
+  "org.scalatest" %% "scalatest-flatspec" % "3.2.14" % Test,
+  "com.github.dnvriend" %% "akka-persistence-inmemory" % "2.5.15.2",
+  "org.scalamock" %% "scalamock" % "5.2.0" % Test,
+  "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
+  "org.scalatest" %% "scalatest-featurespec" % "3.2.14" % Test
+
 )
 
 lazy val root = (project in file("."))

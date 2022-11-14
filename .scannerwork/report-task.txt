@@ -1,0 +1,6 @@
+projectKey=steamreviews
+serverUrl=http://localhost:9000
+serverVersion=9.4.0.54424
+dashboardUrl=http://localhost:9000/dashboard?id=steamreviews
+ceTaskId=AYR28dkNn5AuHnlAF965
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AYR28dkNn5AuHnlAF965
