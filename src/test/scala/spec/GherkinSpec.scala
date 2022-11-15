@@ -5,19 +5,16 @@ import akka.actor.ActorSystem
 import akka.testkit.{ ImplicitSender, TestKit }
 import org.scalatest.{ BeforeAndAfterAll, GivenWhenThen, Inside, Inspectors, OptionValues }
 import org.scalatest.featurespec.AnyFeatureSpecLike
-import org.scalatest.flatspec.FixtureAnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
 
-abstract class UnitSpec
+abstract class GherkinSpec
   extends TestKit(ActorSystem("SteamTestActorSystem"))
-  with FixtureAnyFlatSpecLike
   with Matchers
   with OptionValues
   with Inside
   with Inspectors
-  with BeforeAndAfterAll
-  with ImplicitSender {
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
+  with ImplicitSender
+  with GivenWhenThen
+  with AnyFeatureSpecLike {
+
 }
