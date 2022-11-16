@@ -113,7 +113,7 @@ class GameManagerActorTest extends UnitSpec {
 //  }
 
 }
-
+/*
 class GameManagerActorRecoverTest extends UnitSpec {
 
   case class FixtureParam(
@@ -153,3 +153,4 @@ class GameManagerActorRecoverTest extends UnitSpec {
   }
 
 }
+*/
