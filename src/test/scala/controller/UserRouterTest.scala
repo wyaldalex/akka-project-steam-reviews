@@ -14,10 +14,12 @@ import dev.galre.josue.steamreviews.spec.{ GherkinSpec, RoutesSpec }
 import org.scalatest.featurespec.AnyFeatureSpecLike
 import org.scalatest.GivenWhenThen
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import dev.galre.josue.steamreviews.service.utils.Actors
 import io.circe.generic.auto._
 
 import scala.util.Random
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 class UserRouterTest extends RoutesSpec {
 
@@ -30,10 +32,12 @@ class UserRouterTest extends RoutesSpec {
     val x = Random.alphanumeric
     val userNameToCreate = s"user_${(x take 20).mkString}"
     val baseUserState = UserState(userId, Some(userNameToCreate), Some(numGamesOwned), Some(numReviews))
-    val userManagerActor: ActorRef = system.actorOf(UserManagerActor.props)
-    val stateManagers: StateManagers = StateManagers(ActorRef.noSender,ActorRef.noSender,ActorRef.noSender,
-      ActorRef.noSender,userManagerActor,userManagerActor,ActorRef.noSender)
+//    val userManagerActor: ActorRef = system.actorOf(UserManagerActor.props)
+//    val stateManagers: StateManagers = StateManagers(ActorRef.noSender,ActorRef.noSender,ActorRef.noSender,
+//      ActorRef.noSender,userManagerActor,userManagerActor,ActorRef.noSender)
     implicit val timeout = Timeout(10.seconds)
+    implicit def executionContext: ExecutionContext = system.dispatcher
+    val stateManagers: StateManagers = Actors.init
     val routes: Route = UserRouter(stateManagers.Command.user,stateManagers.Query.user).routes
 
     //TODO: Pending Change, response should return entity not info in headers

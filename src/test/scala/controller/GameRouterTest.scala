@@ -9,11 +9,13 @@ import akka.testkit.TestDuration
 import akka.util.Timeout
 import dev.galre.josue.steamreviews.repository.GameManagerActor
 import dev.galre.josue.steamreviews.repository.entity.GameActor.GameState
+import dev.galre.josue.steamreviews.service.utils.Actors
 import dev.galre.josue.steamreviews.service.utils.Actors.StateManagers
 import dev.galre.josue.steamreviews.spec.RoutesSpec
 
 import scala.util.Random
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 //Used to desiralize the entities
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -25,11 +27,13 @@ class GameRouterTest extends RoutesSpec {
 
     val x = Random.alphanumeric
     implicit val timeout = Timeout(10.seconds)
-    val gameManagerActor: ActorRef = system.actorOf(GameManagerActor.props)
-    val stateManagers: StateManagers = StateManagers(
-      gameManagerActor, gameManagerActor, ActorRef.noSender,
-      ActorRef.noSender, ActorRef.noSender, ActorRef.noSender, ActorRef.noSender
-    )
+//    val gameManagerActor: ActorRef = system.actorOf(GameManagerActor.props)
+//    val stateManagers: StateManagers = StateManagers(
+//      gameManagerActor, gameManagerActor, ActorRef.noSender,
+//      ActorRef.noSender, ActorRef.noSender, ActorRef.noSender, ActorRef.noSender
+//    )
+    implicit def executionContext: ExecutionContext = system.dispatcher
+    val stateManagers: StateManagers = Actors.init
 
     val routes: Route = GameRouter(stateManagers.Command.game, stateManagers.Query.game).routes
 
