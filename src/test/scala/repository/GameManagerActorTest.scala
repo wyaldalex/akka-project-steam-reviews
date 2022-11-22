@@ -62,6 +62,7 @@ class GameManagerActorTest extends UnitSpec {
       assert(f.gameName == getResult.value.steamAppName)
   }
 
+  //TODO: User of futures inside GameManagerActor instead of PipeTo
   it should "return a Right(GameState) with the updated state" in { f=>
     f.actor ! CreateGame(f.gameName)
     val createResult = expectMsgClass(classOf[Right[String, GameState]])

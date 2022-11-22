@@ -36,6 +36,7 @@ class UserRouterTest extends RoutesSpec {
     implicit val timeout = Timeout(10.seconds)
     val routes: Route = UserRouter(stateManagers.Command.user,stateManagers.Query.user).routes
 
+    //TODO: Pending Change, response should return entity not info in headers
     Scenario("A client send a request to create a new user") {
 
       implicit val timeout = RouteTestTimeout(10.seconds.dilated)
