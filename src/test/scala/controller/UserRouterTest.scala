@@ -43,7 +43,7 @@ class UserRouterTest extends RoutesSpec {
     val routes: Route = UserRouter(stateManagers.Command.user,stateManagers.Query.user).routes
 
     //TODO: Pending Change, response should return entity not info in headers
-    Scenario("A client send a request to create a new user") {
+    Scenario("A client sends a request to create a new user") {
 
       implicit val timeout = RouteTestTimeout(10.seconds.dilated)
       Given("a user information and a POST request")
@@ -59,7 +59,7 @@ class UserRouterTest extends RoutesSpec {
       }
     }
 
-    Scenario("A client send a request to get a user") {
+    Scenario("A client sends a request to get a user") {
       implicit val timeout = RouteTestTimeout(10.seconds.dilated)
       Given("a user and a GET request with the user id")
       val x = Random.alphanumeric
@@ -119,6 +119,41 @@ class UserRouterTest extends RoutesSpec {
         assert(status == StatusCodes.OK)
         assert(entityAs[ResponseWithMessage] == ResponseWithMessage(200, Some("UserState was deleted successfully.")) )
         info(response.toString())
+      }
+    }
+
+    //----------Edge Cases for Boundary Analysis---------------
+    //Edge case - empty user name
+    Scenario("A client sends a request to create a new user with empty username") {
+
+      implicit val timeout = RouteTestTimeout(10.seconds.dilated)
+      Given("a user information and a POST request")
+      val user = generateBoundaryUserRequest(newUserName = "")
+      val request = Post("/users").withEntity(ContentTypes.`application/json`, user)
+
+      When("a request to create a new user is sent to the server")
+      request ~!> routes ~> check {
+
+        Then("will create a new user and will response with the user info and a 200 status")
+        assert(status == StatusCodes.Created)
+        info(s"headers for emptyUserName $headers")
+      }
+    }
+
+    //Edge case - empty user name
+    Scenario("A client sends a request to create a new user with negative reviews games owned") {
+
+      implicit val timeout = RouteTestTimeout(10.seconds.dilated)
+      Given("a user information and a POST request")
+      val user = generateBoundaryUserRequest(newUserName = "x", newNumReviews = -12121, newGamesOwned = -123121)
+      val request = Post("/users").withEntity(ContentTypes.`application/json`, user)
+
+      When("a request to create a new user is sent to the server")
+      request ~!> routes ~> check {
+
+        Then("will create a new user and will response with the user info and a 200 status")
+        assert(status == StatusCodes.Created)
+        info(s"headers for emptyUserName $headers")
       }
     }
 

@@ -46,6 +46,10 @@ object PayLoadGenerator {
     s"""{"name":"$userName","numGamesOwned":$newGamesOwned,"numReviews":$newNumReviews}"""
   }
 
+  def generateBoundaryUserRequest(newUserName: String, newGamesOwned: Int = 10, newNumReviews: Int = 10): String = {
+    s"""{"name":"$newUserName","numGamesOwned":$newGamesOwned,"numReviews":$newNumReviews}"""
+  }
+
   def generateReviewUpdateRequest(region: String, review: String, recommended: Boolean): String = {
     s"""
        |{

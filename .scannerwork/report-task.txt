@@ -2,5 +2,5 @@ projectKey=steamreviews
 serverUrl=http://localhost:9000
 serverVersion=9.4.0.54424
 dashboardUrl=http://localhost:9000/dashboard?id=steamreviews
-ceTaskId=AYShbptPN8MJBuEDSGRI
-ceTaskUrl=http://localhost:9000/api/ce/task?id=AYShbptPN8MJBuEDSGRI
+ceTaskId=AYSlBOmMqQaeAqpzVX-1
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AYSlBOmMqQaeAqpzVX-1
