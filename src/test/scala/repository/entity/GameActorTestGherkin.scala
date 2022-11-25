@@ -2,10 +2,9 @@ package dev.galre.josue.steamreviews
 package repository.entity
 
 import akka.actor.{ ActorRef, Kill }
-import akka.testkit.TestProbe
+import dev.galre.josue.steamreviews.generators.PayLoadGenerator._
 import dev.galre.josue.steamreviews.repository.entity.GameActor.{ CreateGame, GameState, GetGameInfo, UpdateName }
-import dev.galre.josue.steamreviews.spec.{ GherkinSpec, UnitSpec }
-import org.scalatest.Outcome
+import dev.galre.josue.steamreviews.spec.GherkinSpec
 
 import scala.util.Random
 
@@ -14,8 +13,7 @@ class GameActorTestGherkin extends GherkinSpec {
   Feature("A GameActor behavior") {
 
     val gameActorId: Long = Math.abs(Random.nextLong())
-    val x = Random.alphanumeric
-    val gameName = s"game_${(x take 20).mkString}"
+    val gameName = generateRandomString("game")
     val gameActor: ActorRef = system.actorOf(GameActor.props(gameActorId))
 
     Scenario("Create GameState ") {
@@ -30,23 +28,21 @@ class GameActorTestGherkin extends GherkinSpec {
     }
 
     Scenario("Game with Same Name should Fail") {
-      val x = Random.alphanumeric
-      val gameName2 = s"game_${(x take 20).mkString}"
+      val gameName = generateRandomString("game")
       Given("A GameActor and a repeated game name")
-      info(s"Using name $gameName2")
+      info(s"Using name $gameName")
 
       When("UpdateName command with a repeated game name")
-      gameActor ! CreateGame(gameName2)
-      expectMsg(Right(GameState(gameActorId, gameName2)))
-      gameActor ! UpdateName(gameActorId, gameName2)
+      gameActor ! CreateGame(gameName)
+      expectMsg(Right(GameState(gameActorId, gameName)))
+      gameActor ! UpdateName(gameActorId, gameName)
 
       Then("The GameActor should return Return a string with the error message ")
       expectMsg(Left("The new name cannot be equal to the previous one."))
     }
 
     Scenario("Return a Right(GameState) on a valid(different name) UpdateName command") {
-      val x = Random.alphanumeric
-      val newName = s"game_${(x take 20).mkString}"
+      val newName = generateRandomString("game")
       Given("A Game actor and a valid new name for update")
 
       When("UpdateName command with new valid name is sent")

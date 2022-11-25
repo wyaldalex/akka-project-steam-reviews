@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.RouteTestTimeout
 import akka.testkit.TestDuration
 import akka.util.Timeout
+import dev.galre.josue.steamreviews.generators.PayLoadGenerator._
 import dev.galre.josue.steamreviews.repository.entity.ReviewActor.ReviewState
 import dev.galre.josue.steamreviews.repository.ReviewManagerActor.ReviewsByFilterContent
 import dev.galre.josue.steamreviews.service.command.ReviewCommand.ComposedReview
@@ -18,7 +19,6 @@ import scala.concurrent.ExecutionContext
 
 //Used to deserialize the entities
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import dev.galre.josue.steamreviews.controller.generators.PayLoadGenerator._
 import io.circe.generic.auto._
 
 class ReviewRouterTest extends RoutesSpec {

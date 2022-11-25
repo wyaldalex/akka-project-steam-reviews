@@ -3,12 +3,12 @@ package repository.entity
 
 import akka.actor.{ ActorRef, Kill }
 import akka.testkit.TestProbe
+import dev.galre.josue.steamreviews.generators.PayLoadGenerator._
 import dev.galre.josue.steamreviews.repository.entity.GameActor.{ CreateGame, GameState, GetGameInfo, UpdateName }
 import dev.galre.josue.steamreviews.spec.UnitSpec
 import org.scalatest.Outcome
 
 import scala.util.Random
-
 
 class GameActorTest extends UnitSpec {
 
@@ -16,7 +16,7 @@ class GameActorTest extends UnitSpec {
   override def withFixture(test: OneArgTest): Outcome = {
     // Perform setup
     val gameActorId: Long =  Math.abs(Random.nextLong())
-    val gameName: String = "Mordhau"
+    val gameName: String = generateRandomString(prefix = "game")
     val probe: TestProbe = TestProbe()
     val gameActor: ActorRef = system.actorOf(GameActor.props(gameActorId))
     val theFixture = FixtureParam(gameActor, probe, gameName,gameActorId)

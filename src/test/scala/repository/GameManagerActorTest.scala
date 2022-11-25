@@ -1,10 +1,10 @@
 package dev.galre.josue.steamreviews
 package repository
 
-import akka.actor.{ ActorRef, Kill }
+import akka.actor.ActorRef
 import akka.testkit.TestProbe
 import akka.util.Timeout
-import dev.galre.josue.steamreviews.repository.entity.GameActor.{ CreateGame, DeleteGame, GameState, GetGameInfo, UpdateName }
+import dev.galre.josue.steamreviews.repository.entity.GameActor._
 import dev.galre.josue.steamreviews.spec.UnitSpec
 import org.scalatest.Outcome
 

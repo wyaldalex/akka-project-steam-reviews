@@ -7,6 +7,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.testkit.TestDuration
 import akka.util.Timeout
+import dev.galre.josue.steamreviews.generators.PayLoadGenerator._
 import dev.galre.josue.steamreviews.repository.entity.UserActor.UserState
 import dev.galre.josue.steamreviews.repository.UserManagerActor
 import dev.galre.josue.steamreviews.service.utils.Actors.{ init, StateManagers }
@@ -20,8 +21,6 @@ import io.circe.generic.auto._
 import scala.util.Random
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
-
-import dev.galre.josue.steamreviews.controller.generators.PayLoadGenerator._
 
 class UserRouterTest extends RoutesSpec {
 

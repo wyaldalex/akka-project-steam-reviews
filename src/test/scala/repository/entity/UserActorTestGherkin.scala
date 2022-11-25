@@ -2,7 +2,7 @@ package dev.galre.josue.steamreviews
 package repository.entity
 
 import akka.actor.{ ActorRef, Kill }
-import dev.galre.josue.steamreviews.repository.entity.UserActor.{ AddOneReview, CreateUser, GetUserInfo, RemoveOneReview, UpdateUser, UserState }
+import dev.galre.josue.steamreviews.repository.entity.UserActor._
 import dev.galre.josue.steamreviews.spec.GherkinSpec
 
 import scala.util.Random

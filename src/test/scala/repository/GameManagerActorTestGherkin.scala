@@ -1,9 +1,10 @@
 package dev.galre.josue.steamreviews
 package repository
 
-import akka.actor.{ ActorRef, Kill, PoisonPill }
+import akka.actor.{ ActorRef, Kill }
 import akka.util.Timeout
-import dev.galre.josue.steamreviews.repository.entity.GameActor.{ CreateGame, DeleteGame, GameState, GetGameInfo, UpdateName }
+import dev.galre.josue.steamreviews.generators.PayLoadGenerator._
+import dev.galre.josue.steamreviews.repository.entity.GameActor.{ CreateGame, DeleteGame, GameState, GetGameInfo }
 import dev.galre.josue.steamreviews.repository.GameManagerActor.CreateGameFromCSV
 import dev.galre.josue.steamreviews.spec.GherkinSpec
 
@@ -15,8 +16,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
 
   Feature("A GameManager Behavior") {
 
-    val x = Random.alphanumeric
-    val gameName = s"game_${(x take 20).mkString}"
+    val gameName = generateRandomString(prefix = "game")
     implicit val timeout: Timeout = Timeout(20.seconds)
     val gameManagerActor: ActorRef = system.actorOf(GameManagerActor.props(timeout, system.dispatcher))
 
@@ -33,10 +33,41 @@ class GameManagerActorTestGherkin extends GherkinSpec {
       assert(gameName == result.value.steamAppName)
     }
 
+//    Scenario("forward invalid CreateGame command and return a Right(GameState)") {
+//      Given("A GameManagerActor and a GameState")
+//
+//      When("Create Command is sent")
+//      gameManagerActor ! CreateGame("")
+//      expectMsgClass(classOf[Right[String, GameState]])
+//      gameManagerActor ! CreateGame("")
+//      expectMsgClass(classOf[Right[String, GameState]])
+//      gameManagerActor ! CreateGame("")
+//      expectMsgClass(classOf[Right[String, GameState]])
+//
+//
+////      assert(result.isRight)
+////      assert(gameName == result.value.steamAppName)
+//    }
+
+//        Scenario("forward invalid CreateGame command and return a Right(GameState)") {
+//          Given("A GameManagerActor and a GameState")
+//
+//          When("Create Command is sent")
+//          gameManagerActor ! CreateGame("")
+//          expectMsgClass(classOf[Right[String, GameState]])
+//          gameManagerActor ! CreateGame("")
+//          expectMsgClass(classOf[Right[String, GameState]])
+//          gameManagerActor ! CreateGame("")
+//          expectMsgClass(classOf[Right[String, GameState]])
+//
+//
+//    //      assert(result.isRight)
+//    //      assert(gameName == result.value.steamAppName)
+//        }
+
     Scenario("forward valid CreateGameFromCSV command and return a Right(GameState)") {
       Given("A GameManagerActor and a GameState")
-      val x = Random.alphanumeric
-      val gameName = s"game_${(x take 20).mkString}"
+      val gameName = generateRandomString("game")
       val steamAppId: Long =  Math.abs(Random.nextLong())
 
       When("Create Command is sent")
@@ -53,8 +84,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
     Scenario(" return a Left(String) in case the game already exists") {
 
       Given("A GameManagerActor and a GameState")
-      val x = Random.alphanumeric
-      val gameName = s"game_${(x take 20).mkString}"
+      val gameName = generateRandomString("game")
 
       gameManagerActor ! CreateGame(gameName)
       val createResult = expectMsgClass(classOf[Right[String, GameState]])
@@ -71,8 +101,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
     Scenario(" forward on a GetGameInfo(id) command and return a Right(GameState)") {
 
       Given("A GameManagerActor and a GameState")
-      val x = Random.alphanumeric
-      val gameName = s"game_${(x take 20).mkString}"
+      val gameName = generateRandomString(prefix = "game")
       gameManagerActor ! CreateGame(gameName)
       val createResult = expectMsgClass(classOf[Right[String, GameState]])
       assert(createResult.isRight)
@@ -88,8 +117,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
 
     Scenario("return a Right(true) on a valid DeleteGame command ") {
 
-      val x = Random.alphanumeric
-      val gameNameToDelete = s"game_${(x take 20).mkString}"
+      val gameNameToDelete = generateRandomString("game")
 
       gameManagerActor ! CreateGame(gameNameToDelete)
       val createResult = expectMsgClass(classOf[Right[String, GameState]])
@@ -132,8 +160,8 @@ class GameManagerActorTestGherkin extends GherkinSpec {
 
     Scenario("Restart GameManagerActor") {
       Given("A GameManagerActor and a GameState with a history of changes")
-      val x = Random.alphanumeric
-      val gameName = s"game_${(x take 20).mkString}"
+
+      val gameName = generateRandomString("game")
 
       gameManagerActor ! CreateGame(gameName)
       val createResult = expectMsgClass(classOf[Right[String, GameState]])

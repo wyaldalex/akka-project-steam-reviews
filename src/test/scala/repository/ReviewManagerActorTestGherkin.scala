@@ -3,12 +3,11 @@ package repository
 
 import akka.actor.{ ActorRef, Kill }
 import akka.util.Timeout
-import dev.galre.josue.steamreviews.repository.entity.ReviewActor.{ CreateReview, DeleteReview, GetReviewInfo, ReviewState, UpdateReview }
+import dev.galre.josue.steamreviews.repository.entity.ReviewActor._
 import dev.galre.josue.steamreviews.repository.ReviewManagerActor.{ CreateReviewFromCSV, GetAllReviewsByAuthor, GetAllReviewsByGame }
 import dev.galre.josue.steamreviews.spec.GherkinSpec
 
 import scala.concurrent.duration._
-import scala.concurrent.Future
 import scala.util.Random
 
 class ReviewManagerActorTestGherkin extends GherkinSpec {
