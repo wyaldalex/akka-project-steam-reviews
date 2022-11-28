@@ -19,7 +19,7 @@ class GameActorTestGherkin extends GherkinSpec {
     Scenario("Create GameState ") {
       Given(" A GameActor and a game name ")
       info(s"Using name $gameName")
-      When("CreateGame command sent")
+      When("CreateGame command is sent")
       gameActor ! CreateGame(gameName)
 
       Then("the GameActor should Return a Right(GameState)")

@@ -96,8 +96,8 @@ class GameRouterTest extends RoutesSpec {
       }
     }
 
-    //TODO: Failed test, deadletters due to futures used inside actor instead of pipeTo
-    ignore("Failed Test due to use of Futures/Ask Pattern inside Receive Method.") {
+    //TODO: Failed Test , deadletters due to futures used inside actor instead of pipeTo
+//    ignore("Failed Test due to use of Futures/Ask Pattern inside Receive Method.") {
       Scenario("Update a Game Name for a given SteamAppId") {
         implicit val timeout = RouteTestTimeout(10.seconds.dilated)
         Given("a valid SteamAppId and new game name")
@@ -134,10 +134,10 @@ class GameRouterTest extends RoutesSpec {
         }
 
       }
-    }
+//    }
 
-    //TODO: Sequence to violate business rule of no duplicate SteamAppName
-    ignore("Duplicate will cause failure") {
+    //TODO: Failed Test Sequence to violate business rule of no duplicate SteamAppName
+//    ignore("Duplicate will cause failure") {
       Scenario("SteamAppName should not have duplicates") {
         implicit val timeout = RouteTestTimeout(10.seconds.dilated)
         Given("Given Two valid Games")
@@ -166,7 +166,7 @@ class GameRouterTest extends RoutesSpec {
         info(gameState2Get.toString)
 
       }
-    }
+//    }
   }
 }
 

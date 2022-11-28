@@ -33,6 +33,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
       assert(gameName == result.value.steamAppName)
     }
 
+    //TODO: Related to the use of ask pattern inside an actor
 //    Scenario("forward invalid CreateGame command and return a Right(GameState)") {
 //      Given("A GameManagerActor and a GameState")
 //
@@ -129,6 +130,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
       assert(deleteResponse.value == true)
     }
 
+    //TODO: Related to the use of ask pattern inside actors
     //Error
 //    Scenario("return a Right(GameState) with the updated state") {
 //

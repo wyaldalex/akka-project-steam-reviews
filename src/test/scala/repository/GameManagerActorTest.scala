@@ -62,7 +62,7 @@ class GameManagerActorTest extends UnitSpec {
       assert(f.gameName == getResult.value.steamAppName)
   }
 
-  //TODO: User of futures inside GameManagerActor instead of PipeTo
+  //TODO: Failed Test User of futures inside GameManagerActor instead of PipeTo
   it should "return a Right(GameState) with the updated state" in { f=>
     f.actor ! CreateGame(f.gameName)
     val createResult = expectMsgClass(classOf[Right[String, GameState]])
@@ -70,9 +70,11 @@ class GameManagerActorTest extends UnitSpec {
 
     val newName = f.gameName.concat("-2")
     f.actor ! UpdateName(createResult.value.steamAppId,newName)
-    //val updateResult = expectMsgClass(20 seconds,classOf[Right[String, GameState]])
-    //assert(updateResult.isRight)
-    //assert(updateResult.value.steamAppName == newName)
+    //----Comment this three lines for passing test, but it shows it fails if let enabled
+    val updateResult = expectMsgClass(20 seconds,classOf[Right[String, GameState]])
+    assert(updateResult.isRight)
+    assert(updateResult.value.steamAppName == newName)
+    //------------
     f.actor ! GetGameInfo(createResult.value.steamAppId)
     val getResult = expectMsgClass(classOf[Right[String, GameState]])
     assert(getResult.isRight)
