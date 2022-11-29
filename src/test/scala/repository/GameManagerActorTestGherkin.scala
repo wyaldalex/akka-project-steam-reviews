@@ -33,7 +33,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
       assert(gameName == result.value.steamAppName)
     }
 
-    
+
     Scenario("forward valid CreateGameFromCSV command and return a Right(GameState)") {
       Given("A GameManagerActor and a GameState")
       val gameName = generateRandomString("game")

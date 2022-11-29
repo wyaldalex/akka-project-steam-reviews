@@ -53,7 +53,7 @@ class UserRouterTest extends RoutesSpec {
       When("a request to create a new user is sent to the server")
       val createResponse = request ~!> routes ~> check {
 
-        Then("will create a new user and will response with the user info and a 200 status")
+        Then("will create a new user and will response with the UserState and a 201 created status")
         assert(status == StatusCodes.Created)
         entityAs[UserState]
       }

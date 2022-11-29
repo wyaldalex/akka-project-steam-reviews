@@ -44,7 +44,7 @@ class GameRouterTest extends RoutesSpec {
 
       When("a request to create a new game is sent to the server")
       val responseCreate = Post("/games").withEntity(ContentTypes.`application/json`, game) ~!> routes ~> check {
-        Then("will create a new game and will respond with the game id and a 201 created status")
+        Then("will create a new game and will respond with the GameState and a 201 created status")
         assert(status == StatusCodes.Created)
         //processHeaderId(headers)
         entityAs[GameState]
