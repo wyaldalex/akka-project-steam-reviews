@@ -46,16 +46,18 @@ class UserRouterTest extends RoutesSpec {
 
       implicit val timeout = RouteTestTimeout(10.seconds.dilated)
       Given("a user information and a POST request")
-      val user = generateUserRequest()
+      val userName = generateRandomString()
+      val user = generateUserRequest(userName)
       val request = Post("/users").withEntity(ContentTypes.`application/json`, user)
 
       When("a request to create a new user is sent to the server")
-      request ~!> routes ~> check {
+      val createResponse = request ~!> routes ~> check {
 
         Then("will create a new user and will response with the user info and a 200 status")
         assert(status == StatusCodes.Created)
-        //assert(entityAs[String] == user)
+        entityAs[UserState]
       }
+      assert(createResponse == UserState(createResponse.userId, createResponse.name,createResponse.numGamesOwned,createResponse.numReviews))
     }
 
     Scenario("A client sends a request to get a user") {

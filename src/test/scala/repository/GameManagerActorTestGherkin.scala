@@ -33,39 +33,7 @@ class GameManagerActorTestGherkin extends GherkinSpec {
       assert(gameName == result.value.steamAppName)
     }
 
-    //TODO: Related to the use of ask pattern inside an actor
-//    Scenario("forward invalid CreateGame command and return a Right(GameState)") {
-//      Given("A GameManagerActor and a GameState")
-//
-//      When("Create Command is sent")
-//      gameManagerActor ! CreateGame("")
-//      expectMsgClass(classOf[Right[String, GameState]])
-//      gameManagerActor ! CreateGame("")
-//      expectMsgClass(classOf[Right[String, GameState]])
-//      gameManagerActor ! CreateGame("")
-//      expectMsgClass(classOf[Right[String, GameState]])
-//
-//
-////      assert(result.isRight)
-////      assert(gameName == result.value.steamAppName)
-//    }
-
-//        Scenario("forward invalid CreateGame command and return a Right(GameState)") {
-//          Given("A GameManagerActor and a GameState")
-//
-//          When("Create Command is sent")
-//          gameManagerActor ! CreateGame("")
-//          expectMsgClass(classOf[Right[String, GameState]])
-//          gameManagerActor ! CreateGame("")
-//          expectMsgClass(classOf[Right[String, GameState]])
-//          gameManagerActor ! CreateGame("")
-//          expectMsgClass(classOf[Right[String, GameState]])
-//
-//
-//    //      assert(result.isRight)
-//    //      assert(gameName == result.value.steamAppName)
-//        }
-
+    
     Scenario("forward valid CreateGameFromCSV command and return a Right(GameState)") {
       Given("A GameManagerActor and a GameState")
       val gameName = generateRandomString("game")
